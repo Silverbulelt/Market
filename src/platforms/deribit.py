@@ -26,7 +26,7 @@ class Deribit(Websocket):
 
     def __init__(self):
         self._platform = DERIBIT
-        self._url = config.platforms.get(self._platform).get("wss")
+        self._url = config.platforms.get(self._platform).get("wss", "wss://hermes.deribit.com/ws/api/v1/")
         self._symbols = list(set(config.platforms.get(self._platform).get("symbols")))
         self._access_key = config.platforms.get(self._platform).get("access_key")
         self._secret_key = config.platforms.get(self._platform).get("secret_key")
