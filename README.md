@@ -25,3 +25,4 @@ python src/main.py config.json  # 启动之前请修改配置文件
 - [Binance](docs/binance.md)
 - [OKEx](docs/okex.md)
 - [OKEx Future](docs/okex_future.md)
+- [Bitmex](docs/bitmex.md)
