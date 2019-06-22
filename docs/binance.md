@@ -47,8 +47,8 @@ Binance(币安)的行情数据根据 [binance官方文档](https://github.com/bi
 > 此处对 `PLATFORMS` 下的关键配置做一下说明:
 - PLATFORMS `dict` 需要配置的交易平台，key为交易平台名称，value为对应的行情配置
 - binance `dict` 交易平台行情配置
-- symbols `list` 需要订阅行情数据的交易对，注意此处配置的交易对都需要大写字母，交易对之间包含斜杠
-- channels `list` 需要订阅的行情类型，其中： kline K线 / orderbook 订单薄 / trade 成交
+- symbols `list` 需要订阅行情数据的交易对，可以是一个或多个，注意此处配置的交易对都需要大写字母，交易对之间包含斜杠
+- channels `list` 需要订阅的行情类型，可以是一个或多个，其中： kline K线 / orderbook 订单薄 / trade 成交
 
 
 > 其它：

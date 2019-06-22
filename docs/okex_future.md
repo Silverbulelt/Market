@@ -40,13 +40,13 @@ OKEx Future的行情数据根据 [OKEx Future官方文档](https://www.okex.com/
     }
 }
 ```
-以上配置表示：订阅 `okex_future` 交易所里，交易对 `BTC/USDT` 和 `LTC/USDT` 的 `orderbook 订单薄` 行情数据。
+以上配置表示：订阅 `okex_future` 交易所里，交易对(合约) `BTC-USD-190524` 的 `orderbook 订单薄` 行情数据。
 
 > 配置文件可以参考 [配置文件说明](https://github.com/TheNextQuant/thenextquant/blob/master/docs/configure/README.md)。
 > 此处对 `PLATFORMS` 下的关键配置做一下说明:
 - PLATFORMS `dict` 需要配置的交易平台，key为交易平台名称，value为对应的行情配置
 - okex_future `dict` 交易平台行情配置
-- symbols `list` 需要订阅行情数据的交易对，注意此处配置的交易对都需要大写字母
+- symbols `list` 需要订阅行情数据的交易对(合约)，可以是一个或多个，注意此处配置的交易对都需要大写字母
 - channels `list` 需要订阅的行情类型，其中： orderbook 订单薄
 
 

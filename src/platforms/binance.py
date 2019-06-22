@@ -81,7 +81,7 @@ class Binance(Websocket):
                 "high": data.get("k").get("h"),  # 最高价
                 "low": data.get("k").get("l"),  # 最低价
                 "close": data.get("k").get("c"),  # 收盘价
-                "volume": data.get("k").get("q"),  # 收盘价
+                "volume": data.get("k").get("q"),  # 交易量
                 "timestamp": data.get("k").get("t"),  # 时间戳
                 "kline_type": const.MARKET_TYPE_KLINE
             }
