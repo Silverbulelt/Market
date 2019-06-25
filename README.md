@@ -22,7 +22,8 @@ python src/main.py config.json  # 启动之前请修改配置文件
 
 #### 各大交易所行情
 
-- [Binance](docs/binance.md)
-- [OKEx](docs/okex.md)
-- [OKEx Future](docs/okex_future.md)
-- [Bitmex](docs/bitmex.md)
+- [Binance 币安 现货](docs/binance.md)
+- [OKEx 现货](docs/okex.md)
+- [OKEx Margin 杠杆](docs/okex_margin.md)
+- [OKEx Future 交割合约](docs/okex_future.md)
+- [Bitmex 合约](docs/bitmex.md)
