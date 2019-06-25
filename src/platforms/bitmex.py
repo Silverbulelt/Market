@@ -10,8 +10,6 @@ Date:   2018/09/13
 
 from quant.utils import tools
 from quant.utils import logger
-from quant.config import config
-from quant.const import BITMEX
 from quant.const import MARKET_TYPE_KLINE
 from quant.utils.websocket import Websocket
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
@@ -22,12 +20,11 @@ class Bitmex(Websocket):
     """ Bitmex 行情
     """
 
-    def __init__(self):
-        self._platform = BITMEX
-        self._wss = config.platforms.get(self._platform).get("wss", "wss://www.bitmex.com")
-        self._symbols = list(set(config.platforms.get(self._platform).get("symbols")))
-        self._channels = config.platforms.get(self._platform).get("channels")
-        self._last_update = 0
+    def __init__(self, **kwargs):
+        self._platform = kwargs["platform"]
+        self._wss = kwargs.get("wss", "wss://www.bitmex.com")
+        self._symbols = list(set(kwargs.get("symbols")))
+        self._channels = kwargs.get("channels")
 
         self._c_to_s = {}  # {"channel": "symbol"}
         url = self._wss + "/realtime"

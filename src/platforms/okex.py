@@ -15,8 +15,6 @@ import copy
 from quant import const
 from quant.utils import tools
 from quant.utils import logger
-from quant.config import config
-from quant.const import OKEX
 from quant.utils.websocket import Websocket
 from quant.event import EventOrderbook, EventTrade, EventKline
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
@@ -26,12 +24,11 @@ class OKEx(Websocket):
     """ OKEx 现货行情
     """
 
-    def __init__(self):
-        self._platform = OKEX
-
-        self._wss = config.platforms.get(self._platform).get("wss", "wss://real.okex.com:10442")
-        self._symbols = list(set(config.platforms.get(self._platform).get("symbols")))
-        self._channels = config.platforms.get(self._platform).get("channels")
+    def __init__(self, **kwargs):
+        self._platform = kwargs["platform"]
+        self._wss = kwargs.get("wss", "wss://real.okex.com:10442")
+        self._symbols = list(set(kwargs.get("symbols")))
+        self._channels = kwargs.get("channels")
 
         self._orderbooks = {}  # 订单薄数据 {"symbol": {"bids": {"price": quantity, ...}, "asks": {...}}}
         self._length = 20  # 订单薄数据推送长度
@@ -66,7 +63,7 @@ class OKEx(Websocket):
                 "args": ches
             }
             await self.ws.send_json(msg)
-            logger.info("subscribe orderbook success.", caller=self)
+            logger.info("subscribe orderbook/trade/kline success.", caller=self)
 
     async def process_binary(self, raw):
         """ 处理websocket上接收到的消息

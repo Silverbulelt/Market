@@ -1,7 +1,7 @@
 # -*— coding:utf-8 -*-
 
 """
-OKEx行情 分割合约
+OKEx行情 交割合约
 https://www.okex.com/docs/zh/#futures_ws-all
 
 Author: HuangTao
@@ -14,22 +14,19 @@ import copy
 
 from quant.utils import tools
 from quant.utils import logger
-from quant.config import config
-from quant.const import OKEX_FUTURE
 from quant.event import EventOrderbook
 from quant.utils.websocket import Websocket
 
 
 class OKExFuture(Websocket):
-    """ OKEx行情 分割合约
+    """ OKEx行情 交割合约
     """
 
-    def __init__(self):
-        self._platform = OKEX_FUTURE
-
-        self._wss = config.platforms.get(self._platform).get("wss", "wss://real.okex.com:10442")
-        self._symbols = list(set(config.platforms.get(self._platform).get("symbols")))
-        self._channels = config.platforms.get(self._platform).get("channels")
+    def __init__(self, **kwargs):
+        self._platform = kwargs["platform"]
+        self._wss = kwargs.get("wss", "wss://real.okex.com:10442")
+        self._symbols = list(set(kwargs.get("symbols")))
+        self._channels = kwargs.get("channels")
 
         self._orderbooks = {}  # 订单薄数据 {"symbol": {"bids": {"price": quantity, ...}, "asks": {...}}}
         self._length = 20  # 订单薄数据推送长度

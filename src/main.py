@@ -11,7 +11,7 @@ import sys
 
 from quant.quant import quant
 from quant.config import config
-from quant.const import OKEX, OKEX_FUTURE, BINANCE, DERIBIT, BITMEX
+from quant.const import OKEX, OKEX_MARGIN, OKEX_FUTURE, BINANCE, DERIBIT, BITMEX
 
 
 def initialize():
@@ -19,7 +19,7 @@ def initialize():
     """
 
     for platform in config.platforms:
-        if platform == OKEX:
+        if platform == OKEX or platform == OKEX_MARGIN:
             from platforms.okex import OKEx as Market
         elif platform == OKEX_FUTURE:
             from platforms.okex_ftu import OKExFuture as Market
@@ -33,7 +33,9 @@ def initialize():
             from quant.utils import logger
             logger.error("platform error! platform:", platform)
             continue
-        Market()
+        cc = config.platforms[platform]
+        cc["platform"] = platform
+        Market(**cc)
 
 
 def main():

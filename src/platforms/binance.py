@@ -11,8 +11,6 @@ Date:   2018/07/04
 from quant import const
 from quant.utils import tools
 from quant.utils import logger
-from quant.config import config
-from quant.const import BINANCE
 from quant.utils.websocket import Websocket
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 from quant.event import EventTrade, EventKline, EventOrderbook
@@ -22,17 +20,17 @@ class Binance(Websocket):
     """ Binance 行情数据
     """
 
-    def __init__(self):
-        self._platform = BINANCE
-        self._url = config.platforms.get(self._platform).get("wss", "wss://stream.binance.com:9443")
-        self._symbols = list(set(config.platforms.get(self._platform).get("symbols")))
-        self._channels = config.platforms.get(self._platform).get("channels")
+    def __init__(self, **kwargs):
+        self._platform = kwargs["platform"]
+        self._wss = kwargs.get("wss", "wss://stream.binance.com:9443")
+        self._symbols = list(set(kwargs.get("symbols")))
+        self._channels = kwargs.get("channels")
 
         self._c_to_s = {}  # {"channel": "symbol"}
         self._tickers = {}  # 最新行情 {"symbol": price_info}
 
-        self._make_url()
-        super(Binance, self).__init__(self._url)
+        url = self._make_url()
+        super(Binance, self).__init__(url)
         self.initialize()
 
     def _make_url(self):
@@ -54,7 +52,8 @@ class Binance(Websocket):
                     cc.append(c)
             else:
                 logger.error("channel error! channel:", ch, caller=self)
-        self._url += "/stream?streams=" + "/".join(cc)
+        url = self._wss + "/stream?streams=" + "/".join(cc)
+        return url
 
     async def process(self, msg):
         """ 处理websocket上接收到的消息
@@ -95,7 +94,7 @@ class Binance(Websocket):
             for ask in data.get("asks"):
                 asks.append(ask[:2])
             orderbook = {
-                "platform": BINANCE,
+                "platform": self._platform,
                 "symbol": symbol,
                 "asks": asks,
                 "bids": bids,

@@ -14,8 +14,6 @@ import hashlib
 
 from quant.utils import tools
 from quant.utils import logger
-from quant.config import config
-from quant.const import DERIBIT
 from quant.event import EventOrderbook
 from quant.utils.websocket import Websocket
 
@@ -24,15 +22,17 @@ class Deribit(Websocket):
     """ deribit外盘行情
     """
 
-    def __init__(self):
-        self._platform = DERIBIT
-        self._url = config.platforms.get(self._platform).get("wss", "wss://hermes.deribit.com/ws/api/v1/")
-        self._symbols = list(set(config.platforms.get(self._platform).get("symbols")))
-        self._access_key = config.platforms.get(self._platform).get("access_key")
-        self._secret_key = config.platforms.get(self._platform).get("secret_key")
-        self._last_msg_ts = tools.get_cur_timestamp() # 上次接收到消息的时间戳
+    def __init__(self, **kwargs):
+        self._platform = kwargs["platform"]
+        self._wss = kwargs.get("wss", "wss://hermes.deribit.com")
+        self._symbols = list(set(kwargs.get("symbols")))
+        self._channels = kwargs.get("channels")
+        self._access_key = kwargs.get("access_key")
+        self._secret_key = kwargs.get("secret_key")
+        self._last_msg_ts = tools.get_cur_timestamp()  # 上次接收到消息的时间戳
 
-        super(Deribit, self).__init__(self._url)
+        url = self._wss + "/ws/api/v1/"
+        super(Deribit, self).__init__(url)
         self.heartbeat_msg = {"action": "/api/v1/public/ping"}
         self.initialize()
 
