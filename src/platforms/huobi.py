@@ -72,7 +72,7 @@ class Huobi(Websocket):
         """ 处理websocket上接收到的消息
         """
         data = json.loads(gzip.decompress(msg).decode())
-        logger.debug("data:", json.dumps(data), caller=self)
+        # logger.debug("data:", json.dumps(data), caller=self)
         channel = data.get("ch")
         if not channel:
             if data.get("ping"):
