@@ -27,3 +27,4 @@ python src/main.py config.json  # 启动之前请修改配置文件
 - [OKEx Margin 杠杆](docs/okex_margin.md)
 - [OKEx Future 交割合约](docs/okex_future.md)
 - [Bitmex 合约](docs/bitmex.md)
+- [Huobi 火币 现货](docs/huobi.md)
