@@ -17,6 +17,41 @@ vim config.json  # 编辑配置文件
 
 python src/main.py config.json  # 启动之前请修改配置文件
 ```
+
+- 配置示例
+```json
+{
+    "LOG": {
+        "console": true,
+        "level": "DEBUG",
+        "path": "/data/logs/servers/Market",
+        "name": "market.log",
+        "clear": true,
+        "backup_count": 5
+    },
+    "RABBITMQ": {
+        "host": "127.0.0.1",
+        "port": 5672,
+        "username": "test",
+        "password": "213456"
+    },
+    "PROXY": "http://127.0.0.1:1087",
+
+    "PLATFORMS": {
+        "binance": {
+            "symbols": [
+                "BTC/USDT",
+                "LTC/USDT"
+            ],
+            "channels": [
+                "kline", "orderbook", "trade"
+            ]
+        }
+    }
+}
+```
+> 以上配置表示：订阅 `binance` 交易所里，交易对 `BTC/USDT` 和 `LTC/USDT` 的 `kline K线` 、 `orderbook 订单薄` 和 `trade 成交` 行情数据。
+
 > 配置请参考 [配置文件说明](https://github.com/TheNextQuant/thenextquant/blob/master/docs/configure/README.md)。
 
 
@@ -28,3 +63,4 @@ python src/main.py config.json  # 启动之前请修改配置文件
 - [OKEx Future 交割合约](docs/okex_future.md)
 - [Bitmex 合约](docs/bitmex.md)
 - [Huobi 火币 现货](docs/huobi.md)
+- [Coinsuper 币成 现货](docs/coinsuper.md)
