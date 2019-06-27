@@ -22,7 +22,7 @@
                 "LTC/USD"
             ],
             "channels": [
-                "ticker", "kline", "orderbook", "trade"
+                "kline", "orderbook", "trade"
             ]
         }
     }
