@@ -4,7 +4,7 @@
 OKEx Future的行情数据根据 [OKEx Future官方文档](https://www.okex.com/docs/zh) 提供的方式，
 通过websocket协议，订阅OKEx Future官方实时推送的行情数据。然后程序将源数据经过适当打包处理，并通过行情事件的形式发布到事件中心。
 
-当前行情服务器能够收集OKEx Future的行情数据包括：Orderbook(订单薄)。
+当前行情服务器能够收集OKEx Future的行情数据包括：Orderbook(订单薄)，Trade(成交)，Kline(K线)。
 
 ##### 1. 服务配置
 
@@ -47,8 +47,10 @@ OKEx Future的行情数据根据 [OKEx Future官方文档](https://www.okex.com/
 - PLATFORMS `dict` 需要配置的交易平台，key为交易平台名称，value为对应的行情配置
 - okex_future `dict` 交易平台行情配置
 - symbols `list` 需要订阅行情数据的交易对(合约)，可以是一个或多个，注意此处配置的交易对都需要大写字母
-- channels `list` 需要订阅的行情类型，其中： orderbook 订单薄
+- channels `list` 需要订阅的行情类型，其中： `orderbook 订单薄` / `kline K线` / `trade 成交`
 
 
 > 其它：
 - [orderbook 数据结构](https://github.com/TheNextQuant/thenextquant/blob/master/docs/market.md#21-%E8%AE%A2%E5%8D%95%E8%96%84orderbook)
+- [Kline 数据结构](https://github.com/TheNextQuant/thenextquant/blob/master/docs/market.md#22-k%E7%BA%BFkline)
+- [Trade 数据结构](https://github.com/TheNextQuant/thenextquant/blob/master/docs/market.md#23-%E6%88%90%E4%BA%A4trade)
