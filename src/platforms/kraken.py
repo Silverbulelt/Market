@@ -15,6 +15,7 @@ from quant.utils import tools
 from quant.utils import logger
 from quant.tasks import LoopRunTask
 from quant.utils.websocket import Websocket
+from quant.utils.decorator import async_method_locker
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 from quant.event import EventTrade, EventOrderbook
 
@@ -97,6 +98,7 @@ class KrakenMarket(Websocket):
         elif msg[-2] == "trade":
             await self.deal_trade_update(msg)
 
+    @async_method_locker("deal_orderbook_update")
     async def deal_orderbook_update(self, msg):
         """ Deal with orderbook message that updated.
         """
