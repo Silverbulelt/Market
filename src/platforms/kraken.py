@@ -116,16 +116,18 @@ class KrakenMarket(Websocket):
         for item in a:
             price = float(item[0])
             quantity = float(item[1])
-            if quantity == 0 and price in self._orderbooks[symbol]["asks"]:
-                self._orderbooks[symbol]["asks"].pop(price)
+            if quantity == 0:
+                if price in self._orderbooks[symbol]["asks"]:
+                    self._orderbooks[symbol]["asks"].pop(price)
             else:
                 self._orderbooks[symbol]["asks"][price] = quantity
                 self._orderbooks[symbol]["timestamp"] = int(float(item[2]) * 1000)
         for item in b:
             price = float(item[0])
             quantity = float(item[1])
-            if quantity == 0 and price in self._orderbooks[symbol]["bids"]:
-                self._orderbooks[symbol]["bids"].pop(price)
+            if quantity == 0:
+                if price in self._orderbooks[symbol]["bids"]:
+                    self._orderbooks[symbol]["bids"].pop(price)
             else:
                 self._orderbooks[symbol]["bids"][price] = quantity
                 self._orderbooks[symbol]["timestamp"] = int(float(item[2]) * 1000)
