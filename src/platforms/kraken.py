@@ -13,11 +13,12 @@ import copy
 
 from quant.utils import tools
 from quant.utils import logger
-from quant.tasks import LoopRunTask
+from quant.tasks import LoopRunTask, SingleTask
 from quant.utils.websocket import Websocket
 from quant.utils.decorator import async_method_locker
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 from quant.event import EventTrade, EventOrderbook
+from quant.platform.kraken import KrakenRestAPI
 
 
 class KrakenMarket(Websocket):
@@ -29,12 +30,13 @@ class KrakenMarket(Websocket):
             wss: Wss host, default is `wss://ws.kraken.com`.
             symbols: Symbol name list, e.g. XTB/USD. (Trade pair name list)
             channels: What are channels to be subscribed, only support `orderbook` and `trade`.
-            orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
+            orderbook_length: The length of orderbook"s data to be published via OrderbookEvent, default is 10.
     """
 
     def __init__(self, **kwargs):
         """Initialized."""
         self._platform = kwargs["platform"]
+        self._host = kwargs.get("host", "https://api.kraken.com")
         self._wss = kwargs.get("wss", "wss://ws.kraken.com")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
@@ -42,6 +44,8 @@ class KrakenMarket(Websocket):
 
         self.heartbeat_msg = {}
         self._orderbooks = {}  # orderbook data, e.g. {"symbol": {"bids": {"price": quantity, ...}, "asks": {...}, "timestamp": 0}, ... }
+
+        self._rest_api = KrakenRestAPI(self._host, None, None)
 
         super(KrakenMarket, self).__init__(self._wss)
         self.initialize()
@@ -60,10 +64,12 @@ class KrakenMarket(Websocket):
             return
         for ch in self._channels:
             if ch == "orderbook":
-                subscription = {"name": "book"}
+                # subscription = {"name": "book"}
+                LoopRunTask.register(self.on_event_update_orderbook, 2)
+                continue
             elif ch == "trade":
                 subscription = {"name": "trade"}
-            # elif ch == "kline":  # TODO: something wrong from exchange server? subscribe ohlc-1 but return ohlc-5 ?
+            # elif ch == "kline":  # TODO: something wrong from exchange server? subscribe ohlc-1 but receive ohlc-5 ?
             #     subscription = {"name": "ohlc", "interval": 1}
             else:
                 logger.error("channel error:", ch, caller=self)
@@ -199,3 +205,31 @@ class KrakenMarket(Websocket):
             }
             EventTrade(**trade).publish()
             logger.info("symbol:", symbol, "trade:", trade, caller=self)
+
+    async def on_event_update_orderbook(self, *args, **kwargs):
+        """ Loop run to fetch orderbook information.
+        """
+        for symbol in self._symbols:
+            SingleTask.run(self.get_newest_orderbook, symbol)
+
+    async def get_newest_orderbook(self, symbol):
+        """ Get the newest orderbook information.
+        """
+        result, error = await self._rest_api.get_orderbook(symbol.replace("/", ""), self._orderbook_length)
+        key = list(result.keys())[0]
+
+        asks, bids = [], []
+        for item in result.get(key)["asks"]:
+            asks.append(item[:2])
+        for item in result.get(key)["bids"]:
+            bids.append(item[:2])
+        timestamp = result.get(key)["asks"][0][-1] * 1000
+        orderbook = {
+            "platform": self._platform,
+            "symbol": symbol,
+            "asks": asks,
+            "bids": bids,
+            "timestamp": timestamp
+        }
+        EventOrderbook(**orderbook).publish()
+        logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
