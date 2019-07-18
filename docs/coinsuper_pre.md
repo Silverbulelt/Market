@@ -1,10 +1,10 @@
 
-## Coinsuper(币成)行情
+## Coinsuper Premium 行情
 
-Coinsuper(币成)的行情数据根据 [Coinsuper官方文档](https://github.com/coinsuperapi/API_docs) 提供的方式，
-通过REST API协议，获取Coinsuper官网的行情数据。然后程序将源数据经过适当打包处理，并通过行情事件的形式发布到事件中心。
+Coinsuper Premium的行情数据根据 [Coinsuper Premium](https://premium.coinsuper.com/api/docs/v1/api_en.html) 提供的方式，
+通过REST API协议，获取Coinsuper Premium官网的行情数据。然后程序将源数据经过适当打包处理，并通过行情事件的形式发布到事件中心。
 
-当前行情服务器能够收集Coinsuper的行情数据包括：Orderbook(订单薄)、Trade(成交)、Kline(K线)。
+当前行情服务器能够收集Coinsuper Premium的行情数据包括：Orderbook(订单薄)、Trade(成交)、Kline(K线)。
 
 ##### 1. 服务配置
 
@@ -29,7 +29,7 @@ Coinsuper(币成)的行情数据根据 [Coinsuper官方文档](https://github.co
     "PROXY": "http://127.0.0.1:1087",
 
     "PLATFORMS": {
-        "coinsuper": {
+        "coinsuper_pre": {
             "access_key": "abc1234",
             "secret_key": "abc1234",
             "symbols": [
@@ -45,12 +45,12 @@ Coinsuper(币成)的行情数据根据 [Coinsuper官方文档](https://github.co
     }
 }
 ```
-以上配置表示：订阅 `coinsuper` 交易所里，交易对 `BTC/USD` 的 `kline K线` 、`orderbook 订单薄` 和 `trade 成交` 行情数据。
+以上配置表示：订阅 `coinsuper_pre` 交易所里，交易对 `BTC/USD` 的 `kline K线` 、`orderbook 订单薄` 和 `trade 成交` 行情数据。
 
 > 配置文件可以参考 [配置文件说明](https://github.com/TheNextQuant/thenextquant/blob/master/docs/configure/README.md)。
 > 此处对 `PLATFORMS` 下的关键配置做一下说明:
 - PLATFORMS `dict` 需要配置的交易平台，key为交易平台名称，value为对应的行情配置
-- coinsuper `dict` 交易平台行情配置
+- coinsuper_pre `dict` 交易平台行情配置
 - access_key `string` 账户对应的Access Key
 - secret_key `string` 账户对应的Secret Key
 - symbols `list` 需要订阅行情数据的交易对，可以是一个或多个，注意此处配置的交易对都需要大写字母，交易对之间包含斜杠

@@ -30,11 +30,11 @@ class KrakenMarket(Websocket):
             wss: Wss host, default is `wss://ws.kraken.com`.
             symbols: Symbol name list, e.g. XTB/USD. (Trade pair name list)
             channels: What are channels to be subscribed, only support `orderbook` and `trade`.
-            orderbook_length: The length of orderbook"s data to be published via OrderbookEvent, default is 10.
+            orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """
 
     def __init__(self, **kwargs):
-        """Initialized."""
+        """Initialize."""
         self._platform = kwargs["platform"]
         self._host = kwargs.get("host", "https://api.kraken.com")
         self._wss = kwargs.get("wss", "wss://ws.kraken.com")

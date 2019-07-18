@@ -13,32 +13,34 @@ Email:  huangtao@ifclover.com
 
 import sys
 
+from quant import const
 from quant.quant import quant
 from quant.config import config
-from quant.const import OKEX, OKEX_MARGIN, OKEX_FUTURE, BINANCE, DERIBIT, BITMEX, HUOBI, COINSUPER, KRAKEN, GATE
 
 
 def initialize():
     """Initialize Server."""
 
     for platform in config.platforms:
-        if platform == OKEX or platform == OKEX_MARGIN:
+        if platform == const.OKEX or platform == const.OKEX_MARGIN:
             from platforms.okex import OKEx as Market
-        elif platform == OKEX_FUTURE:
+        elif platform == const.OKEX_FUTURE:
             from platforms.okex_ftu import OKExFuture as Market
-        elif platform == BINANCE:
+        elif platform == const.BINANCE:
             from platforms.binance import Binance as Market
-        elif platform == DERIBIT:
+        elif platform == const.DERIBIT:
             from platforms.deribit import Deribit as Market
-        elif platform == BITMEX:
+        elif platform == const.BITMEX:
             from platforms.bitmex import Bitmex as Market
-        elif platform == HUOBI:
+        elif platform == const.HUOBI:
             from platforms.huobi import Huobi as Market
-        elif platform == COINSUPER:
+        elif platform == const.COINSUPER:
             from platforms.coinsuper import CoinsuperMarket as Market
-        elif platform == KRAKEN:
+        elif platform == const.COINSUPER_PRE:
+            from platforms.coinsuper_pre import CoinsuperPreMarket as Market
+        elif platform == const.KRAKEN:
             from platforms.kraken import KrakenMarket as Market
-        elif platform == GATE:
+        elif platform == const.GATE:
             from platforms.gate import GateMarket as Market
         else:
             from quant.utils import logger

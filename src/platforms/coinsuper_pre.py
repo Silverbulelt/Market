@@ -1,7 +1,7 @@
 # -*— coding:utf-8 -*-
 
 """
-Coinsuper Market Server.
+Coinsuper Premium Market Server.
 
 Author: HuangTao
 Date:   2018/11/14
@@ -18,16 +18,16 @@ from quant.utils import tools
 from quant.utils import logger
 from quant.heartbeat import heartbeat
 from quant.event import EventTrade, EventKline, EventOrderbook
-from quant.platform.coinsuper import CoinsuperRestAPI
+from quant.platform.coinsuper_pre import CoinsuperPreRestAPI
 
 
-class CoinsuperMarket:
-    """ Coinsuper Market Server.
+class CoinsuperPreMarket:
+    """ Coinsuper Premium Market Server.
 
     Attributes:
         kwargs:
-            platform: Exchange platform name, must be `coinsuper`.
-            host: HTTP request host. (default is "https://api.coinsuper.com")
+            platform: Exchange platform name, must be `coinsuper_pre`.
+            host: HTTP request host. (default is "https://api-rest.premium.coinsuper.com")
             symbols: Symbol name list, e.g. XTB/USD. (Trade pair name list)
             channels: What are channels to be subscribed, only support `orderbook` and `trade`.
             orderbook_interval: The interval time to fetch a orderbook information, default is 2 seconds.
@@ -37,7 +37,7 @@ class CoinsuperMarket:
 
     def __init__(self, **kwargs):
         self._platform = kwargs["platform"]
-        self._host = kwargs.get("wss", "https://api.coinsuper.com")
+        self._host = kwargs.get("wss", "https://api-rest.premium.coinsuper.com")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
         self._access_key = kwargs["access_key"]
@@ -48,7 +48,7 @@ class CoinsuperMarket:
         self._trade_interval = kwargs.get("trade_interval", 5)
 
         # REST API client.
-        self._rest_api = CoinsuperRestAPI(self._host, self._access_key, self._secret_key)
+        self._rest_api = CoinsuperPreRestAPI(self._host, self._access_key, self._secret_key)
 
         self._initialize()
 

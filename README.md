@@ -60,12 +60,13 @@ python src/main.py config.json  # 启动之前请修改配置文件
 
 #### 各大交易所行情
 
-- [Binance(币安) 币币](docs/binance.md)
+- [Binance 币币](docs/binance.md)
 - [OKEx 币币](docs/okex.md)
 - [OKEx Margin 杠杆](docs/okex_margin.md)
 - [OKEx Future 交割合约](docs/okex_future.md)
 - [Bitmex 合约](docs/bitmex.md)
-- [Huobi(火币) 币币](docs/huobi.md)
-- [Coinsuper(币成) 币币](docs/coinsuper.md)
+- [Huobi 币币](docs/huobi.md)
+- [Coinsuper 币币](docs/coinsuper.md)
+- [Coinsuper Premium 币币](docs/coinsuper_pre.md)
 - [Kraken 币币](docs/kraken.md)
 - [Gate.io 币币](docs/gate.md)
