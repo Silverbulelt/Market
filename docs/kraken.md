@@ -37,6 +37,7 @@ Kraken的行情数据根据 [Kraken官方文档](https://www.kraken.com/en-us/fe
             "channels": [
                 "orderbook", "trade"
             ],
+            "orderbook_interval": 2,
             "orderbook_length": 10
         }
     }
@@ -51,7 +52,8 @@ Kraken的行情数据根据 [Kraken官方文档](https://www.kraken.com/en-us/fe
 - wss `string` kraken服务器的wss地址，`可选，默认为 "wss://ws.kraken.com"`
 - symbols `list` 需要订阅行情数据的交易对，可以是一个或多个，注意此处配置的交易对都需要大写字母，交易对之间包含斜杠
 - channels `list` 需要订阅的行情类型，可以是一个或多个，其中：orderbook 订单薄 / trade 成交
-- orderbook_length `int` 订单薄推送长度，`可选，默认为 10`
+- orderbook_interval `int` `Orderbook` 行情推送时间间隔(秒)，`可选，默认2秒`
+- orderbook_length `int` `Orderbook` 行情推送长度，`可选，默认为 10`
 
 
 > 其它：

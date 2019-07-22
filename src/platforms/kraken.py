@@ -30,6 +30,7 @@ class KrakenMarket(Websocket):
             wss: Wss host, default is `wss://ws.kraken.com`.
             symbols: Symbol name list, e.g. XTB/USD. (Trade pair name list)
             channels: What are channels to be subscribed, only support `orderbook` and `trade`.
+            orderbook_interval: The interval time to fetch a orderbook information, default is 2 seconds.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """
 
@@ -40,6 +41,7 @@ class KrakenMarket(Websocket):
         self._wss = kwargs.get("wss", "wss://ws.kraken.com")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
+        self._orderbook_interval = kwargs.get("orderbook_interval", 2)
         self._orderbook_length = kwargs.get("orderbook_length", 10)
 
         self.heartbeat_msg = {}
@@ -65,7 +67,7 @@ class KrakenMarket(Websocket):
         for ch in self._channels:
             if ch == "orderbook":
                 # subscription = {"name": "book"}
-                LoopRunTask.register(self.on_event_update_orderbook, 2)
+                LoopRunTask.register(self.on_event_update_orderbook, self._orderbook_interval)
                 continue
             elif ch == "trade":
                 subscription = {"name": "trade"}
@@ -217,13 +219,15 @@ class KrakenMarket(Websocket):
         """
         result, error = await self._rest_api.get_orderbook(symbol.replace("/", ""), self._orderbook_length)
         key = list(result.keys())[0]
+        timestamp = 0
 
         asks, bids = [], []
         for item in result.get(key)["asks"]:
             asks.append(item[:2])
+            timestamp = max(timestamp, item[-1] * 1000)
         for item in result.get(key)["bids"]:
             bids.append(item[:2])
-        timestamp = result.get(key)["asks"][0][-1] * 1000
+            timestamp = max(timestamp, item[-1] * 1000)
         orderbook = {
             "platform": self._platform,
             "symbol": symbol,
