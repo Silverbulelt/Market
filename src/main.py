@@ -42,6 +42,8 @@ def initialize():
             from platforms.kraken import KrakenMarket as Market
         elif platform == const.GATE:
             from platforms.gate import GateMarket as Market
+        elif platform == const.GEMINI:
+            from platforms.gemini import GeminiMarket as Market
         else:
             from quant.utils import logger
             logger.error("platform error! platform:", platform)
