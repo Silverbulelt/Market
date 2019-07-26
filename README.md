@@ -71,3 +71,4 @@ python src/main.py config.json  # 启动之前请修改配置文件
 - [Kraken 币币](docs/kraken.md)
 - [Gate.io 币币](docs/gate.md)
 - [Gemini 币币](docs/gemini.md)
+- [Coinbase 币币](docs/coinbase.md)

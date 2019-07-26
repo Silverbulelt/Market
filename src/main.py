@@ -44,6 +44,8 @@ def initialize():
             from platforms.gate import GateMarket as Market
         elif platform == const.GEMINI:
             from platforms.gemini import GeminiMarket as Market
+        elif platform == const.COINBASE:
+            from platforms.coinbase import CoinbaseMarket as Market
         else:
             from quant.utils import logger
             logger.error("platform error! platform:", platform)
