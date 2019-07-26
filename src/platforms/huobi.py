@@ -1,11 +1,12 @@
 # -*— coding:utf-8 -*-
 
 """
-Huobi 行情数据
+Huobi Market Server.
 https://github.com/huobiapi/API_Docs
 
 Author: HuangTao
 Date:   2018/08/28
+Email:  huangtao@ifclover.com
 """
 
 import gzip
@@ -19,7 +20,15 @@ from quant.event import EventTrade, EventKline, EventOrderbook
 
 
 class Huobi(Websocket):
-    """ Huobi 行情数据
+    """ Huobi Market Server.
+
+    Attributes:
+        kwargs:
+            platform: Exchange platform name, must be `huobi`.
+            wss: Exchange Websocket host address, default is "wss://api.huobi.pro".
+            symbols: Trade pair list, e.g. ["ETH/BTC"].
+            channels: channel list, only `orderbook`, `kline` and `trade` to be enabled.
+            orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """
 
     def __init__(self, **kwargs):
@@ -27,6 +36,7 @@ class Huobi(Websocket):
         self._wss = kwargs.get("wss", "wss://api.huobi.pro")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
+        self._orderbook_length = kwargs.get("orderbook_length", 10)
 
         self._c_to_s = {}  # {"channel": "symbol"}
 
@@ -35,10 +45,10 @@ class Huobi(Websocket):
         self.initialize()
 
     async def connected_callback(self):
-        """ 订阅消息
+        """ After create Websocket connection successfully, we will subscribing orderbook/trade events.
         """
         for ch in self._channels:
-            if ch == "kline":  # 订阅K线数据
+            if ch == "kline":
                 for symbol in self._symbols:
                     channel = self._symbol_to_channel(symbol, "kline")
                     if not channel:
@@ -47,7 +57,7 @@ class Huobi(Websocket):
                         "sub": channel
                     }
                     await self.ws.send_json(kline)
-            elif ch == "orderbook":  # 订阅订单薄数据
+            elif ch == "orderbook":
                 for symbol in self._symbols:
                     channel = self._symbol_to_channel(symbol, "depth")
                     if not channel:
@@ -56,7 +66,7 @@ class Huobi(Websocket):
                         "sub": channel
                     }
                     await self.ws.send_json(data)
-            elif ch == "trade":  # 实时交易数据
+            elif ch == "trade":
                 for symbol in self._symbols:
                     channel = self._symbol_to_channel(symbol, "trade")
                     if not channel:
@@ -69,7 +79,7 @@ class Huobi(Websocket):
                 logger.error("channel error! channel:", ch, caller=self)
 
     async def process_binary(self, msg):
-        """ 处理websocket上接收到的消息
+        """ Process binary message that received from Websocket connection.
         """
         data = json.loads(gzip.decompress(msg).decode())
         # logger.debug("data:", json.dumps(data), caller=self)
@@ -81,29 +91,29 @@ class Huobi(Websocket):
 
         symbol = self._c_to_s[channel]
 
-        if channel.find("kline") != -1:  # K线
+        if channel.find("kline") != -1:
             d = data.get("tick")
             kline = {
                 "platform": self._platform,
                 "symbol": symbol,
-                "open": "%.8f" % d["open"],  # 开盘价
-                "high": "%.8f" % d["high"],  # 最高价
-                "low": "%.8f" % d["low"],  # 最低价
-                "close": "%.8f" % d["close"],  # 收盘价
-                "volume": "%.8f" % d["amount"],  # 成交量
-                "timestamp": int(data.get("ts")),  # 时间戳
+                "open": "%.8f" % d["open"],
+                "high": "%.8f" % d["high"],
+                "low": "%.8f" % d["low"],
+                "close": "%.8f" % d["close"],
+                "volume": "%.8f" % d["amount"],
+                "timestamp": int(data.get("ts")),
                 "kline_type": MARKET_TYPE_KLINE
             }
             EventKline(**kline).publish()
             logger.info("symbol:", symbol, "kline:", kline, caller=self)
-        elif channel.find("depth") != -1:  # 订单薄
+        elif channel.find("depth") != -1:
             d = data.get("tick")
             asks, bids = [], []
-            for item in d.get("asks")[:10]:
+            for item in d.get("asks")[:self._orderbook_length]:
                 price = "%.8f" % item[0]
                 quantity = "%.8f" % item[1]
                 asks.append([price, quantity])
-            for item in d.get("bids")[:10]:
+            for item in d.get("bids")[:self._orderbook_length]:
                 price = "%.8f" % item[0]
                 quantity = "%.8f" % item[1]
                 bids.append([price, quantity])
@@ -116,7 +126,7 @@ class Huobi(Websocket):
             }
             EventOrderbook(**orderbook).publish()
             logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
-        elif channel.find("trade") != -1:  # 实时交易数据
+        elif channel.find("trade") != -1:
             tick = data.get("tick")
             direction = tick["data"][0].get("direction")
             price = tick["data"][0].get("price")
@@ -135,9 +145,11 @@ class Huobi(Websocket):
             logger.error("event error! msg:", msg, caller=self)
 
     def _symbol_to_channel(self, symbol, channel_type):
-        """ symbol转换到channel
-        @param symbol 交易对名字
-        @param channel_type 频道类型 kline K线 / ticker 行情 / depth 订单薄
+        """ Convert symbol to channel.
+
+        Args:
+            symbol: Trade pair name.
+            channel_type: channel name, kline / ticker / depth.
         """
         if channel_type == "kline":
             channel = "market.{s}.kline.1min".format(s=symbol.replace("/", '').lower())

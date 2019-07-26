@@ -28,7 +28,7 @@ class GateMarket(Websocket):
         kwargs:
             platform: Exchange platform name, must be `kraken`.
             wss: Wss host, default is `wss://ws.kraken.com`.
-            symbols: Symbol name list, e.g. XTB/USD. (Trade pair name list)
+            symbols: Trade pair list, e.g. ["ETH/BTC"].
             channels: What are channels to be subscribed, only support `orderbook` and `trade`.
             orderbook_length: The length of orderbook"s data to be published via OrderbookEvent, default is 10.
     """

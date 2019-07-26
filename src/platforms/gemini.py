@@ -25,7 +25,7 @@ class GeminiMarket(Websocket):
         kwargs:
             platform: Exchange platform name, must be `gemini`.
             wss: Exchange Websocket host address, default is "wss://api.gemini.com".
-            symbols: symbol list, OKEx Future instrument_id list.
+            symbols: Trade pair list, e.g. ["ETH/BTC"].
             channels: channel list, only `orderbook` , `kline` and `trade` to be enabled.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """

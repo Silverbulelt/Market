@@ -26,7 +26,7 @@ class CoinbaseMarket(Websocket):
         kwargs:
             platform: Exchange platform name, must be `coinbase`.
             wss: Exchange Websocket host address, default is "wss://ws-feed.pro.coinbase.com".
-            symbols: symbol list, OKEx Future instrument_id list.
+            symbols: Trade pair list, e.g. ["ETH/USD"].
             channels: channel list, only `orderbook` , `kline` and `trade` to be enabled.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """
