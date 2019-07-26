@@ -219,21 +219,18 @@ class KrakenMarket(Websocket):
         """
         result, error = await self._rest_api.get_orderbook(symbol.replace("/", ""), self._orderbook_length)
         key = list(result.keys())[0]
-        timestamp = 0
 
         asks, bids = [], []
         for item in result.get(key)["asks"]:
             asks.append(item[:2])
-            timestamp = max(timestamp, item[-1] * 1000)
         for item in result.get(key)["bids"]:
             bids.append(item[:2])
-            timestamp = max(timestamp, item[-1] * 1000)
         orderbook = {
             "platform": self._platform,
             "symbol": symbol,
             "asks": asks,
             "bids": bids,
-            "timestamp": timestamp
+            "timestamp": tools.get_cur_timestamp_ms()
         }
         EventOrderbook(**orderbook).publish()
         logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
