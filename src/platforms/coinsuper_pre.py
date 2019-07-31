@@ -37,7 +37,7 @@ class CoinsuperPreMarket:
 
     def __init__(self, **kwargs):
         self._platform = kwargs["platform"]
-        self._host = kwargs.get("wss", "https://api-rest.premium.coinsuper.com")
+        self._host = kwargs.get("host", "https://api-rest.premium.coinsuper.com")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
         self._access_key = kwargs["access_key"]
