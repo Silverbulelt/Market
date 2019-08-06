@@ -10,6 +10,7 @@ Email:  huangtao@ifclover.com
 """
 
 import copy
+import asyncio
 
 from quant.utils import tools
 from quant.utils import logger
@@ -31,6 +32,7 @@ class KucoinMarket:
             symbols: symbol list, OKEx Future instrument_id list.
             channels: channel list, only `orderbook` , `kline` and `trade` to be enabled.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
+            orderbook_interval: The interval time to fetch a orderbook information, default is 2 seconds.
     """
 
     def __init__(self, **kwargs):
@@ -38,46 +40,37 @@ class KucoinMarket:
         self._host = kwargs.get("host", "https://openapi-v2.kucoin.com")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
-        self._orderbook_length = kwargs.get("orderbook_length", 10)
+        self._orderbook_length = kwargs.get("orderbook_length", 20)  # only support for 20 or 100.
+        self._orderbook_interval = kwargs.get("orderbook_interval", 2)
+
+        if self._orderbook_length != 20:
+            self._orderbook_length = 100
 
         self._request_id = 0  # Unique request id for pre request.
         self._orderbooks = {}  # Orderbook data, e.g. {"symbol": {"bids": {"price": quantity, ...}, "asks": {...}, timestamp: 123, "sequence": 123}}
         self._last_publish_ts = 0  # The latest publish timestamp for OrderbookEvent.
         self._ws = None  # Websocket object.
 
+        # REST API client.
+        self._rest_api = KucoinRestAPI(self._host, None, None, None)
+
         SingleTask.run(self._initialize)
-        LoopRunTask.register(self.send_heartbeat_msg, 30)
 
     async def _initialize(self):
         """Initialize."""
-        # Create Websocket connection.
-        rest_api = KucoinRestAPI(self._host, None, None, None)
-        success, error = await rest_api.get_websocket_token()
-        if error:
-            logger.error("get websocket token error!", caller=self)
-            return
-        url = "{}?token={}".format(success["instanceServers"][0]["endpoint"], success["token"])
-        self._ws = Websocket(url, self.connected_callback, self.process)
-        self._ws.initialize()
-
-        # Pull orderbook snapshot.
-        if "orderbook" in self._channels:
-            for symbol in self._symbols:
-                success, error = await rest_api.get_orderbook(symbol.replace("/", "-"))
+        for channel in self._channels:
+            if channel == "orderbook":
+                LoopRunTask.register(self.do_orderbook_update, self._orderbook_interval)
+            elif channel == "trade":
+                # Create Websocket connection.
+                success, error = await self._rest_api.get_websocket_token()
                 if error:
-                    logger.error("Get orderbook snapshot error:", error, caller=self)
-                    continue
-                asks, bids = {}, {}
-                for item in success["asks"]:
-                    asks[float(item[0])] = float(item[1])
-                for item in success["bids"]:
-                    bids[float(item[0])] = float(item[1])
-                self._orderbooks[symbol] = {
-                    "asks": asks,
-                    "bids": bids,
-                    "timestamp": success["time"],
-                    "sequence": int(success["sequence"])
-                }
+                    logger.error("get websocket token error!", caller=self)
+                    return
+                url = "{}?token={}".format(success["instanceServers"][0]["endpoint"], success["token"])
+                self._ws = Websocket(url, self.connected_callback, self.process)
+                self._ws.initialize()
+                LoopRunTask.register(self.send_heartbeat_msg, 30)
 
     async def connected_callback(self):
         """ After create connection to Websocket server successfully, we will subscribe orderbook/kline/trade event.
@@ -94,20 +87,20 @@ class KucoinMarket:
             return
         for ch in self._channels:
             request_id = await self.generate_request_id()
-            if ch == "orderbook":
+            # if ch == "orderbook":
+            #     d = {
+            #         "id": request_id,
+            #         "type": "subscribe",
+            #         "topic": "/market/level2:" + ",".join(symbols),
+            #         "response": True
+            #     }
+            #     await self._ws.send(d)
+            #     logger.info("subscribe orderbook success.", caller=self)
+            if ch == "trade":
                 d = {
                     "id": request_id,
                     "type": "subscribe",
-                    "topic": "/market/level2:" + ",".join(symbols),
-                    "response": True
-                }
-                await self._ws.send(d)
-                logger.info("subscribe orderbook success.", caller=self)
-            elif ch == "trade":
-                d = {
-                    "id": request_id,
-                    "type": "subscribe",
-                    "topic": "/market/match:"  + ",".join(symbols),
+                    "topic": "/market/match:" + ",".join(symbols),
                     "privateChannel": False,
                     "response": True
                 }
@@ -241,3 +234,22 @@ class KucoinMarket:
         }
         EventTrade(**trade).publish()
         logger.info("symbol:", symbol, "trade:", trade, caller=self)
+
+    async def do_orderbook_update(self, *args, **kwargs):
+        """ Fetch orderbook information."""
+        for symbol in self._symbols:
+            result, error = await self._rest_api.get_orderbook(symbol.replace("/", "-"), self._orderbook_length)
+            if error:
+                continue
+            orderbook = {
+                "platform": self._platform,
+                "symbol": symbol,
+                "asks": result["asks"],
+                "bids": result["bids"],
+                "timestamp": result["time"]
+            }
+            EventOrderbook(**orderbook).publish()
+            logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
+
+            # await 0.1 second before next request.
+            await asyncio.sleep(0.1)
