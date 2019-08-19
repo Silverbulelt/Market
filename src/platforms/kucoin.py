@@ -31,7 +31,7 @@ class KucoinMarket:
             host: Exchange Websocket host address, default is "https://openapi-v2.kucoin.com".
             symbols: symbol list, OKEx Future instrument_id list.
             channels: channel list, only `orderbook` , `kline` and `trade` to be enabled.
-            orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
+            orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 20.
             orderbook_interval: The interval time to fetch a orderbook information, default is 2 seconds.
     """
 
