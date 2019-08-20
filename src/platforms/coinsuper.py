@@ -16,6 +16,7 @@ import asyncio
 from quant import const
 from quant.utils import tools
 from quant.utils import logger
+from quant.config import config
 from quant.heartbeat import heartbeat
 from quant.event import EventTrade, EventKline, EventOrderbook
 from quant.platform.coinsuper import CoinsuperRestAPI
@@ -28,7 +29,7 @@ class CoinsuperMarket:
         kwargs:
             platform: Exchange platform name, must be `coinsuper`.
             host: HTTP request host. (default is "https://api.coinsuper.com")
-            symbols: Symbol name list, e.g. XTB/USD. (Trade pair name list)
+            symbols: Symbol name list, e.g. BTC/USD. (Trade pair name list)
             channels: What are channels to be subscribed, only support `orderbook` and `trade`.
             orderbook_interval: The interval time to fetch a orderbook information, default is 2 seconds.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
@@ -37,11 +38,19 @@ class CoinsuperMarket:
 
     def __init__(self, **kwargs):
         self._platform = kwargs["platform"]
-        self._host = kwargs.get("host", "https://api.coinsuper.com")
+        self._host = None
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
-        self._access_key = kwargs["access_key"]
-        self._secret_key = kwargs["secret_key"]
+        self._access_key = None
+        self._secret_key = None
+        for item in config.accounts:
+            if item["platform"] == self._platform:
+                self._host = item.get("host", "https://api.coinsuper.com")
+                self._access_key = item["access_key"]
+                self._secret_key = item["secret_key"]
+        if not self._host or not self._access_key or not self._access_key:
+            logger.error("no find coinsuper account in ACCOUNTS from config file.", caller=self)
+            return
 
         self._orderbook_interval = kwargs.get("orderbook_interval", 2)
         self._orderbook_length = kwargs.get("orderbook_length", 10)

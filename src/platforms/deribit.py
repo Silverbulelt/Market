@@ -14,6 +14,7 @@ import hashlib
 
 from quant.utils import tools
 from quant.utils import logger
+from quant.config import config
 from quant.event import EventOrderbook
 from quant.utils.websocket import Websocket
 
@@ -24,12 +25,21 @@ class Deribit(Websocket):
 
     def __init__(self, **kwargs):
         self._platform = kwargs["platform"]
-        self._wss = kwargs.get("wss", "wss://hermes.deribit.com")
+        self._wss = None
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
-        self._access_key = kwargs.get("access_key")
-        self._secret_key = kwargs.get("secret_key")
+        self._access_key = None
+        self._secret_key = None
         self._last_msg_ts = tools.get_cur_timestamp()  # 上次接收到消息的时间戳
+
+        for item in config.accounts:
+            if item["platform"] == self._platform:
+                self._wss = item.get("wss", "wss://hermes.deribit.com")
+                self._access_key = item["access_key"]
+                self._secret_key = item["secret_key"]
+        if not self._wss or not self._access_key or not self._access_key:
+            logger.error("no find deribit account in ACCOUNTS from config file.", caller=self)
+            return
 
         url = self._wss + "/ws/api/v1/"
         super(Deribit, self).__init__(url)
