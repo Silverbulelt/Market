@@ -30,7 +30,7 @@ class Deribit(Websocket):
         self._channels = kwargs.get("channels")
         self._access_key = None
         self._secret_key = None
-        self._last_msg_ts = tools.get_cur_timestamp()  # 上次接收到消息的时间戳
+        self._last_msg_ts = tools.get_cur_timestamp_ms()  # 上次接收到消息的时间戳
 
         for item in config.accounts:
             if item["platform"] == self._platform:
@@ -69,7 +69,7 @@ class Deribit(Websocket):
         """ 处理websocket上接收到的消息
         """
         # logger.debug("msg:", msg, caller=self)
-        if tools.get_cur_timestamp() <= self._last_msg_ts:
+        if tools.get_cur_timestamp_ms() <= self._last_msg_ts:
             return
         if not isinstance(msg, dict):
             return
@@ -89,7 +89,7 @@ class Deribit(Websocket):
         for item in notifications[0].get("result").get("asks")[:10]:
             a = [item.get("price"), item.get("quantity")]
             asks.append(a)
-        self._last_msg_ts = tools.get_cur_timestamp()
+        self._last_msg_ts = tools.get_cur_timestamp_ms()
         orderbook = {
             "platform": self._platform,
             "symbol": symbol,
