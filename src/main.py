@@ -23,31 +23,33 @@ def initialize():
 
     for platform in config.platforms:
         if platform == const.OKEX or platform == const.OKEX_MARGIN:
-            from platforms.okex import OKEx as Market
+            from markets.okex import OKEx as Market
         elif platform == const.OKEX_FUTURE:
-            from platforms.okex_ftu import OKExFuture as Market
+            from markets.okex_ftu import OKExFuture as Market
         elif platform == const.BINANCE:
-            from platforms.binance import Binance as Market
+            from markets.binance import Binance as Market
         elif platform == const.DERIBIT:
-            from platforms.deribit import Deribit as Market
+            from markets.deribit import Deribit as Market
         elif platform == const.BITMEX:
-            from platforms.bitmex import Bitmex as Market
+            from markets.bitmex import Bitmex as Market
         elif platform == const.HUOBI:
-            from platforms.huobi import Huobi as Market
+            from markets.huobi import Huobi as Market
         elif platform == const.COINSUPER:
-            from platforms.coinsuper import CoinsuperMarket as Market
+            from markets.coinsuper import CoinsuperMarket as Market
         elif platform == const.COINSUPER_PRE:
-            from platforms.coinsuper_pre import CoinsuperPreMarket as Market
+            from markets.coinsuper_pre import CoinsuperPreMarket as Market
         elif platform == const.KRAKEN:
-            from platforms.kraken import KrakenMarket as Market
+            from markets.kraken import KrakenMarket as Market
         elif platform == const.GATE:
-            from platforms.gate import GateMarket as Market
+            from markets.gate import GateMarket as Market
         elif platform == const.GEMINI:
-            from platforms.gemini import GeminiMarket as Market
+            from markets.gemini import GeminiMarket as Market
         elif platform == const.COINBASE:
-            from platforms.coinbase import CoinbaseMarket as Market
+            from markets.coinbase import CoinbaseMarket as Market
         elif platform == const.KUCOIN:
-            from platforms.kucoin import KucoinMarket as Market
+            from markets.kucoin import KucoinMarket as Market
+        elif platform == const.HUOBI_FUTURE:
+            from markets.huobi_future import HuobiFutureMarket as Market
         else:
             from quant.utils import logger
             logger.error("platform error! platform:", platform)
