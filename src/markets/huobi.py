@@ -29,6 +29,7 @@ class Huobi:
             symbols: Trade pair list, e.g. ["ETH/BTC"].
             channels: channel list, only `orderbook`, `kline` and `trade` to be enabled.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
+            price_precious: The price precious, default is 8.
     """
 
     def __init__(self, **kwargs):
@@ -37,6 +38,7 @@ class Huobi:
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
         self._orderbook_length = kwargs.get("orderbook_length", 10)
+        self._price_precious = kwargs.get("price_precious", 8)
 
         self._c_to_s = {}  # {"channel": "symbol"}
 
@@ -100,11 +102,11 @@ class Huobi:
             kline = {
                 "platform": self._platform,
                 "symbol": symbol,
-                "open": "%.8f" % d["open"],
-                "high": "%.8f" % d["high"],
-                "low": "%.8f" % d["low"],
-                "close": "%.8f" % d["close"],
-                "volume": "%.8f" % d["amount"],
+                "open": "%.{}f".format(self._price_precious) % d["open"],
+                "high": "%.{}f".format(self._price_precious) % d["high"],
+                "low": "%.{}f".format(self._price_precious) % d["low"],
+                "close": "%.{}f".format(self._price_precious) % d["close"],
+                "volume": "%.{}f".format(self._price_precious) % d["amount"],
                 "timestamp": int(data.get("ts")),
                 "kline_type": MARKET_TYPE_KLINE
             }
@@ -114,12 +116,12 @@ class Huobi:
             d = data.get("tick")
             asks, bids = [], []
             for item in d.get("asks")[:self._orderbook_length]:
-                price = "%.8f" % item[0]
-                quantity = "%.8f" % item[1]
+                price = "%.{}f".format(self._price_precious) % item[0]
+                quantity = "%.{}f".format(self._price_precious) % item[1]
                 asks.append([price, quantity])
             for item in d.get("bids")[:self._orderbook_length]:
-                price = "%.8f" % item[0]
-                quantity = "%.8f" % item[1]
+                price = "%.{}f".format(self._price_precious) % item[0]
+                quantity = "%.{}f".format(self._price_precious) % item[1]
                 bids.append([price, quantity])
             orderbook = {
                 "platform": self._platform,
@@ -139,8 +141,8 @@ class Huobi:
                 "platform": self._platform,
                 "symbol": symbol,
                 "action": ORDER_ACTION_BUY if direction == "buy" else ORDER_ACTION_SELL,
-                "price": "%.8f" % price,
-                "quantity": "%.8f" % quantity,
+                "price": "%.{}f".format(self._price_precious) % price,
+                "quantity": "%.{}f".format(self._price_precious) % quantity,
                 "timestamp": tick.get("ts")
             }
             EventTrade(**trade).publish()

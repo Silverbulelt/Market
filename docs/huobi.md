@@ -28,7 +28,7 @@ Huobi(火币 现货)的行情数据根据 [Huobi官方文档](https://huobiapi.g
     },
     "PROXY": "http://127.0.0.1:1087",
 
-    "PLATFORMS": {
+    "MARKETS": {
         "huobi": {
             "symbols": [
                 "BTC/USDT",
@@ -36,7 +36,9 @@ Huobi(火币 现货)的行情数据根据 [Huobi官方文档](https://huobiapi.g
             ],
             "channels": [
                 "kline", "orderbook", "trade"
-            ]
+            ],
+            "price_precious": 8,
+            "orderbook_length": 10
         }
     }
 }
@@ -49,6 +51,8 @@ Huobi(火币 现货)的行情数据根据 [Huobi官方文档](https://huobiapi.g
 - huobi `dict` 交易平台行情配置
 - symbols `list` 需要订阅行情数据的交易对，可以是一个或多个，注意此处配置的交易对都需要大写字母，交易对之间包含斜杠
 - channels `list` 需要订阅的行情类型，可以是一个或多个，其中： kline K线 / orderbook 订单薄 / trade 成交
+- price_precious `int` 价格精度，`可选，默认为8`
+- orderbook_length `int` 需要收集的订单薄长度，`可选，默认为10`
 
 
 > 其它：
