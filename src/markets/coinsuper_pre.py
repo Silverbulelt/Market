@@ -30,7 +30,7 @@ class CoinsuperPreMarket:
             platform: Exchange platform name, must be `coinsuper_pre`.
             host: HTTP request host. (default is "https://api-rest.premium.coinsuper.com")
             symbols: Symbol name list, e.g. XTB/USD. (Trade pair name list)
-            channels: What are channels to be subscribed, only support `orderbook` and `trade`.
+            channels: What are channels to be subscribed, only support `orderbook` / `trade` / `kline_5min` / `kline_15min`.
             orderbook_interval: The interval time to fetch a orderbook information, default is 2 seconds.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
             trade_interval: The interval time to fetch a trade information, default is 5 seconds.

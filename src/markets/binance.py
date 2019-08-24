@@ -1,23 +1,32 @@
 # -*— coding:utf-8 -*-
 
 """
-Binance 行情数据
+Binance Market Server.
 https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md
 
 Author: HuangTao
 Date:   2018/07/04
+Email:  huangtao@ifclover.com
 """
 
 from quant import const
 from quant.utils import tools
 from quant.utils import logger
-from quant.utils.websocket import Websocket
+from quant.utils.web import Websocket
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 from quant.event import EventTrade, EventKline, EventOrderbook
 
 
-class Binance(Websocket):
-    """ Binance 行情数据
+class Binance:
+    """ Binance Market Server.
+
+    Attributes:
+        kwargs:
+            platform: Exchange platform name, must be `binance`.
+            wss: Exchange Websocket host address, default is `wss://stream.binance.com:9443`.
+            symbols: Symbol list.
+            channels: Channel list, only `orderbook` / `trade` / `kline` to be enabled.
+            orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """
 
     def __init__(self, **kwargs):
@@ -25,28 +34,29 @@ class Binance(Websocket):
         self._wss = kwargs.get("wss", "wss://stream.binance.com:9443")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
+        self._orderbook_length = kwargs.get("orderbook_length", 10)
 
-        self._c_to_s = {}  # {"channel": "symbol"}
-        self._tickers = {}  # 最新行情 {"symbol": price_info}
+        self._c_to_s = {}
+        self._tickers = {}
 
         url = self._make_url()
-        super(Binance, self).__init__(url)
-        self.initialize()
+        self._ws = Websocket(url, process_callback=self.process)
+        self._ws.initialize()
 
     def _make_url(self):
-        """ 拼接请求url
+        """Generate request url.
         """
         cc = []
         for ch in self._channels:
-            if ch == "kline":  # 订阅K线 1分钟
+            if ch == "kline":
                 for symbol in self._symbols:
                     c = self._symbol_to_channel(symbol, "kline_1m")
                     cc.append(c)
-            elif ch == "orderbook":  # 订阅订单薄 深度为5
+            elif ch == "orderbook":
                 for symbol in self._symbols:
                     c = self._symbol_to_channel(symbol, "depth20")
                     cc.append(c)
-            elif ch == "trade":  # 订阅实时交易
+            elif ch == "trade":
                 for symbol in self._symbols:
                     c = self._symbol_to_channel(symbol, "trade")
                     cc.append(c)
@@ -56,7 +66,10 @@ class Binance(Websocket):
         return url
 
     async def process(self, msg):
-        """ 处理websocket上接收到的消息
+        """Process message that received from Websocket connection.
+
+        Args:
+            msg: Message received from Websocket connection.
         """
         # logger.debug("msg:", msg, caller=self)
         if not isinstance(msg, dict):
@@ -69,58 +82,63 @@ class Binance(Websocket):
 
         symbol = self._c_to_s[channel]
         data = msg.get("data")
-        e = data.get("e")  # 事件名称
+        e = data.get("e")
 
-        # 保存数据到数据库
-        if e == "kline":  # K线
-            kline = {
-                "platform": self._platform,
-                "symbol": symbol,
-                "open": data.get("k").get("o"),  # 开盘价
-                "high": data.get("k").get("h"),  # 最高价
-                "low": data.get("k").get("l"),  # 最低价
-                "close": data.get("k").get("c"),  # 收盘价
-                "volume": data.get("k").get("q"),  # 交易量
-                "timestamp": data.get("k").get("t"),  # 时间戳
-                "kline_type": const.MARKET_TYPE_KLINE
-            }
-            EventKline(**kline).publish()
-            logger.info("symbol:", symbol, "kline:", kline, caller=self)
-        elif channel.endswith("depth20"):  # 订单薄
-            bids = []
-            asks = []
-            for bid in data.get("bids"):
-                bids.append(bid[:2])
-            for ask in data.get("asks"):
-                asks.append(ask[:2])
-            orderbook = {
-                "platform": self._platform,
-                "symbol": symbol,
-                "asks": asks,
-                "bids": bids,
-                "timestamp": tools.get_cur_timestamp_ms()
-            }
-            EventOrderbook(**orderbook).publish()
-            logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
-        elif e == "trade":  # 实时成交信息
-            trade = {
-                "platform": self._platform,
-                "symbol": symbol,
-                "action":  ORDER_ACTION_SELL if data["m"] else ORDER_ACTION_BUY,
-                "price": data.get("p"),
-                "quantity": data.get("q"),
-                "timestamp": data.get("T")
-            }
-            EventTrade(**trade).publish()
-            logger.info("symbol:", symbol, "trade:", trade, caller=self)
-        else:
-            logger.error("event error! msg:", msg, caller=self)
+        if e == "kline":
+            await self.process_kline(symbol, data)
+        elif channel.endswith("depth20"):
+            await self.process_orderbook(symbol, data)
+        elif e == "trade":
+            await self.process_trade(symbol, data)
+
+    async def process_kline(self, symbol, data):
+        """Process kline data and publish KlineEvent."""
+        kline = {
+            "platform": self._platform,
+            "symbol": symbol,
+            "open": data.get("k").get("o"),
+            "high": data.get("k").get("h"),
+            "low": data.get("k").get("l"),
+            "close": data.get("k").get("c"),
+            "volume": data.get("k").get("q"),
+            "timestamp": data.get("k").get("t"),
+            "kline_type": const.MARKET_TYPE_KLINE
+        }
+        EventKline(**kline).publish()
+        logger.info("symbol:", symbol, "kline:", kline, caller=self)
+
+    async def process_orderbook(self, symbol, data):
+        """Process orderbook data and publish OrderbookEvent."""
+        bids = []
+        asks = []
+        for bid in data.get("bids")[:self._orderbook_length]:
+            bids.append(bid[:2])
+        for ask in data.get("asks")[:self._orderbook_length]:
+            asks.append(ask[:2])
+        orderbook = {
+            "platform": self._platform,
+            "symbol": symbol,
+            "asks": asks,
+            "bids": bids,
+            "timestamp": tools.get_cur_timestamp_ms()
+        }
+        EventOrderbook(**orderbook).publish()
+        logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
+
+    async def process_trade(self, symbol, data):
+        """Process trade data and publish TradeEvent."""
+        trade = {
+            "platform": self._platform,
+            "symbol": symbol,
+            "action":  ORDER_ACTION_SELL if data["m"] else ORDER_ACTION_BUY,
+            "price": data.get("p"),
+            "quantity": data.get("q"),
+            "timestamp": data.get("T")
+        }
+        EventTrade(**trade).publish()
+        logger.info("symbol:", symbol, "trade:", trade, caller=self)
 
     def _symbol_to_channel(self, symbol, channel_type="ticker"):
-        """ symbol转换到channel
-        @param symbol symbol名字
-        @param channel_type 频道类型 kline K线 / ticker 行情
-        """
         channel = "{x}@{y}".format(x=symbol.replace("/", "").lower(), y=channel_type)
         self._c_to_s[channel] = symbol
         return channel

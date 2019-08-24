@@ -75,19 +75,28 @@ class HuobiFutureMarket:
 
         symbol = self._c_to_s[channel]
         if channel.find("depth") != -1:
-            tick = data.get("tick")
-            asks = tick.get("asks")[:self._orderbook_length]
-            bids = tick.get("bids")[:self._orderbook_length]
-            timestamp = tick.get("ts")
-            orderbook = {
-                "platform": self._platform,
-                "symbol": symbol,
-                "asks": asks,
-                "bids": bids,
-                "timestamp": timestamp
-            }
-            EventOrderbook(**orderbook).publish()
-            logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
+            await self.process_orderbook(symbol, data)
+
+    async def process_orderbook(self, symbol, data):
+        """Process orderbook message and publish OrderbookEvent.
+
+        Args:
+            symbol: Contract code.
+            data: Orderbook data received from Websocket connection.
+        """
+        tick = data.get("tick")
+        asks = tick.get("asks")[:self._orderbook_length]
+        bids = tick.get("bids")[:self._orderbook_length]
+        timestamp = tick.get("ts")
+        orderbook = {
+            "platform": self._platform,
+            "symbol": symbol,
+            "asks": asks,
+            "bids": bids,
+            "timestamp": timestamp
+        }
+        EventOrderbook(**orderbook).publish()
+        logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
 
     def _symbol_to_channel(self, symbol, channel_type):
         if channel_type == "depth":

@@ -37,13 +37,13 @@ Coinsuper Premium的行情数据根据 [Coinsuper Premium](https://premium.coins
         }
     ],
 
-    "PLATFORMS": {
+    "MARKETS": {
         "coinsuper_pre": {
             "symbols": [
                 "BTC/USD"
             ],
             "channels": [
-                "kline_5m", "orderbook", "trade"
+                "kline_5min", "kline_15m", "orderbook", "trade"
             ],
             "orderbook_interval": 2,
             "orderbook_length": 10,
@@ -52,13 +52,13 @@ Coinsuper Premium的行情数据根据 [Coinsuper Premium](https://premium.coins
     }
 }
 ```
-以上配置表示：订阅 `coinsuper_pre` 交易所里，交易对 `BTC/USD` 的 `kline K线` 、`orderbook 订单薄` 和 `trade 成交` 行情数据。
+以上配置表示：订阅 `coinsuper_pre` 交易所里，交易对 `BTC/USD` 的 `kline_5min 5分钟K线` 、`kline_15m 15分钟K线` 、`orderbook 订单薄` 和 `trade 成交` 行情数据。
 
 > 特别注意: 配置文件中需要配置 `ACCOUNTS` 并且包含 `coinsuper_pre` 的账户。
 
 > 配置文件可以参考 [配置文件说明](https://github.com/TheNextQuant/thenextquant/blob/master/docs/configure/README.md)。
-> 此处对 `PLATFORMS` 下的关键配置做一下说明:
-- PLATFORMS `dict` 需要配置的交易平台，key为交易平台名称，value为对应的行情配置
+> 此处对 `MARKETS` 下的关键配置做一下说明:
+- MARKETS `dict` 需要配置的交易平台，key为交易平台名称，value为对应的行情配置
 - coinsuper_pre `dict` 交易平台行情配置
 - symbols `list` 需要订阅行情数据的交易对，可以是一个或多个，注意此处配置的交易对都需要大写字母，交易对之间包含斜杠
 - channels `list` 需要订阅的行情类型，可以是一个或多个，其中： kline_5m 5分钟K线 / kline_15m 15分钟K线 / orderbook 订单薄 / trade 成交

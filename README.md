@@ -40,7 +40,7 @@ python src/main.py config.json  # 启动之前请修改配置文件
     },
     "PROXY": "http://127.0.0.1:1087",
 
-    "PLATFORMS": {
+    "MARKETS": {
         "binance": {
             "symbols": [
                 "BTC/USDT",
@@ -65,6 +65,7 @@ python src/main.py config.json  # 启动之前请修改配置文件
 - [OKEx Margin 杠杆](docs/okex_margin.md)
 - [OKEx Future 交割合约](docs/okex_future.md)
 - [Bitmex 合约](docs/bitmex.md)
+- [Deribit 合约](docs/deribit.md)
 - [Huobi 币币](docs/huobi.md)
 - [Coinsuper 币币](docs/coinsuper.md)
 - [Coinsuper Premium 币币](docs/coinsuper_pre.md)

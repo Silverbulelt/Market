@@ -1,11 +1,12 @@
 # -*— coding:utf-8 -*-
 
 """
-OKEx 现货行情
+OKEx Market Server.
 https://www.okex.com/docs/zh
 
 Author: HuangTao
 Date:   2018/05/21
+Email:  huangtao@ifclover.com
 """
 
 import zlib
@@ -15,13 +16,22 @@ import copy
 from quant import const
 from quant.utils import tools
 from quant.utils import logger
-from quant.utils.websocket import Websocket
-from quant.event import EventOrderbook, EventTrade, EventKline
+from quant.tasks import LoopRunTask
+from quant.utils.web import Websocket
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
+from quant.event import EventOrderbook, EventTrade, EventKline
 
 
-class OKEx(Websocket):
-    """ OKEx 现货行情
+class OKEx:
+    """ OKEx Market Server.
+
+    Attributes:
+        kwargs:
+            platform: Exchange platform name, must be `okex`.
+            host: Exchange Websocket host address, default is `wss://real.okex.com:10442`.
+            symbols: symbol list, OKEx Future instrument_id list.
+            channels: channel list, only `orderbook` , `kline` and `trade` to be enabled.
+            orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """
 
     def __init__(self, **kwargs):
@@ -29,21 +39,21 @@ class OKEx(Websocket):
         self._wss = kwargs.get("wss", "wss://real.okex.com:10442")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
+        self._orderbook_length = kwargs.get("orderbook_length", 10)
 
         self._orderbooks = {}  # 订单薄数据 {"symbol": {"bids": {"price": quantity, ...}, "asks": {...}}}
-        self._length = 20  # 订单薄数据推送长度
 
         url = self._wss + "/ws/v3"
-        super(OKEx, self).__init__(url)
-        self.heartbeat_msg = "ping"
-        self.initialize()
+        self._ws = Websocket(url, connected_callback=self.connected_callback,
+                             process_binary_callback=self.process_binary)
+        self._ws.initialize()
+        LoopRunTask.register(self.send_heartbeat_msg, 5)
 
     async def connected_callback(self):
-        """ 建立连接之后，订阅事件 ticker
-        """
+        """After create Websocket connection successfully, we will subscribing orderbook/trade/kline."""
         ches = []
         for ch in self._channels:
-            if ch == "orderbook":  # 订阅orderbook行情
+            if ch == "orderbook":
                 for symbol in self._symbols:
                     ch = "spot/depth:{s}".format(s=symbol.replace("/", '-'))
                     ches.append(ch)
@@ -62,44 +72,50 @@ class OKEx(Websocket):
                 "op": "subscribe",
                 "args": ches
             }
-            await self.ws.send_json(msg)
+            await self._ws.send(msg)
             logger.info("subscribe orderbook/trade/kline success.", caller=self)
 
+    async def send_heartbeat_msg(self, *args, **kwargs):
+        data = "ping"
+        if not self._ws:
+            logger.error("Websocket connection not yeah!", caller=self)
+            return
+        await self._ws.send(data)
+
     async def process_binary(self, raw):
-        """ 处理websocket上接收到的消息
-        @param raw 原始的压缩数据
+        """ Process binary message that received from Websocket connection.
+
+        Args:
+            raw: Raw message that received from Websocket connection.
         """
         decompress = zlib.decompressobj(-zlib.MAX_WBITS)
         msg = decompress.decompress(raw)
         msg += decompress.flush()
         msg = msg.decode()
-        if msg == "pong":  # 心跳返回
+        # logger.debug("msg:", msg, caller=self)
+        if msg == "pong":
             return
         msg = json.loads(msg)
-        # logger.debug("msg:", msg, caller=self)
 
         table = msg.get("table")
-        if table == "spot/depth":  # 订单薄
-            if msg.get("action") == "partial":  # 首次返回全量数据
+        if table == "spot/depth":
+            if msg.get("action") == "partial":
                 for d in msg["data"]:
-                    await self.deal_orderbook_partial(d)
-            elif msg.get("action") == "update":  # 返回增量数据
+                    await self.process_orderbook_partial(d)
+            elif msg.get("action") == "update":
                 for d in msg["data"]:
                     await self.deal_orderbook_update(d)
             else:
                 logger.warn("unhandle msg:", msg, caller=self)
         elif table == "spot/trade":
             for d in msg["data"]:
-                await self.deal_trade_update(d)
+                await self.process_trade(d)
         elif table == "spot/candle60s":
             for d in msg["data"]:
-                await self.deal_kline_update(d)
-        else:
-            logger.warn("unhandle msg:", msg, caller=self)
+                await self.process_kline(d)
 
-    async def deal_orderbook_partial(self, data):
-        """ 处理全量数据
-        """
+    async def process_orderbook_partial(self, data):
+        """Process orderbook partical data."""
         symbol = data.get("instrument_id").replace("-", "/")
         if symbol not in self._symbols:
             return
@@ -118,8 +134,7 @@ class OKEx(Websocket):
         self._orderbooks[symbol]["timestamp"] = timestamp
 
     async def deal_orderbook_update(self, data):
-        """ 处理orderbook增量数据
-        """
+        """Process orderbook update data."""
         symbol = data.get("instrument_id").replace("-", "/")
         asks = data.get("asks")
         bids = data.get("bids")
@@ -145,51 +160,45 @@ class OKEx(Websocket):
             else:
                 self._orderbooks[symbol]["bids"][price] = quantity
 
-        await self.publish_orderbook()
+        await self.publish_orderbook(symbol)
 
-    async def publish_orderbook(self, *args, **kwargs):
-        """ 推送orderbook数据
-        """
-        for symbol, data in self._orderbooks.items():
-            ob = copy.copy(data)
-            if not ob["asks"] or not ob["bids"]:
-                logger.warn("symbol:", symbol, "asks:", ob["asks"], "bids:", ob["bids"], caller=self)
-                continue
+    async def publish_orderbook(self, symbol):
+        """Publish OrderbookEvent."""
+        ob = copy.copy(self._orderbooks[symbol])
+        if not ob["asks"] or not ob["bids"]:
+            logger.warn("symbol:", symbol, "asks:", ob["asks"], "bids:", ob["bids"], caller=self)
+            return
 
-            ask_keys = sorted(list(ob["asks"].keys()))
-            bid_keys = sorted(list(ob["bids"].keys()), reverse=True)
-            if ask_keys[0] <= bid_keys[0]:
-                logger.warn("symbol:", symbol, "ask1:", ask_keys[0], "bid1:", bid_keys[0], caller=self)
-                continue
+        ask_keys = sorted(list(ob["asks"].keys()))
+        bid_keys = sorted(list(ob["bids"].keys()), reverse=True)
+        if ask_keys[0] <= bid_keys[0]:
+            logger.warn("symbol:", symbol, "ask1:", ask_keys[0], "bid1:", bid_keys[0], caller=self)
+            return
 
-            # 卖
-            asks = []
-            for k in ask_keys[:self._length]:
-                price = "%.8f" % k
-                quantity = "%.8f" % ob["asks"].get(k)
-                asks.append([price, quantity])
+        asks = []
+        for k in ask_keys[:self._orderbook_length]:
+            price = "%.8f" % k
+            quantity = "%.8f" % ob["asks"].get(k)
+            asks.append([price, quantity])
 
-            # 买
-            bids = []
-            for k in bid_keys[:self._length]:
-                price = "%.8f" % k
-                quantity = "%.8f" % ob["bids"].get(k)
-                bids.append([price, quantity])
+        bids = []
+        for k in bid_keys[:self._orderbook_length]:
+            price = "%.8f" % k
+            quantity = "%.8f" % ob["bids"].get(k)
+            bids.append([price, quantity])
 
-            # 推送订单薄数据
-            orderbook = {
-                "platform": self._platform,
-                "symbol": symbol,
-                "asks": asks,
-                "bids": bids,
-                "timestamp": ob["timestamp"]
-            }
-            EventOrderbook(**orderbook).publish()
-            logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
+        orderbook = {
+            "platform": self._platform,
+            "symbol": symbol,
+            "asks": asks,
+            "bids": bids,
+            "timestamp": ob["timestamp"]
+        }
+        EventOrderbook(**orderbook).publish()
+        logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
 
-    async def deal_trade_update(self, data):
-        """ 处理trade数据
-        """
+    async def process_trade(self, data):
+        """Process trade data and publish TradeEvent."""
         symbol = data.get("instrument_id").replace("-", "/")
         if symbol not in self._symbols:
             return
@@ -198,7 +207,6 @@ class OKEx(Websocket):
         quantity = "%.8f" % float(data["size"])
         timestamp = tools.utctime_str_to_mts(data["timestamp"])
 
-        # 推送trade数据
         trade = {
             "platform": self._platform,
             "symbol": symbol,
@@ -210,9 +218,8 @@ class OKEx(Websocket):
         EventTrade(**trade).publish()
         logger.info("symbol:", symbol, "trade:", trade, caller=self)
 
-    async def deal_kline_update(self, data):
-        """ 处理K线数据 1分钟
-        """
+    async def process_kline(self, data):
+        """Process kline data and publish KlineEvent."""
         symbol = data["instrument_id"].replace("-", "/")
         if symbol not in self._symbols:
             return
@@ -223,7 +230,6 @@ class OKEx(Websocket):
         close = "%.8f" % float(data["candle"][4])
         volume = "%.8f" % float(data["candle"][5])
 
-        # 推送trade数据
         kline = {
             "platform": self._platform,
             "symbol": symbol,

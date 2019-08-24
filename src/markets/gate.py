@@ -15,13 +15,13 @@ from quant import const
 from quant.utils import tools
 from quant.utils import logger
 from quant.tasks import LoopRunTask
-from quant.utils.websocket import Websocket
+from quant.utils.web import Websocket
 from quant.utils.decorator import async_method_locker
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 from quant.event import EventOrderbook, EventKline, EventTrade
 
 
-class GateMarket(Websocket):
+class GateMarket:
     """ Gate.io Market Server.
 
     Attributes:
@@ -29,7 +29,7 @@ class GateMarket(Websocket):
             platform: Exchange platform name, must be `gate`.
             wss: Wss host, default is `wss://ws.gate.io`.
             symbols: Trade pair list, e.g. ["ETH/BTC"].
-            channels: What are channels to be subscribed, only support `orderbook` and `trade`.
+            channels: What are channels to be subscribed, only support `orderbook` / `trade` / `kline`.
             orderbook_length: The length of orderbook"s data to be published via OrderbookEvent, default is 10.
     """
 
@@ -45,13 +45,12 @@ class GateMarket(Websocket):
         self._orderbooks = {}  # orderbook data, e.g. {"symbol": {"bids": {"price": quantity, ...}, "asks": {...}, "timestamp": 0}, ... }
 
         url = self._wss + "/v3/"
-        super(GateMarket, self).__init__(url, send_hb_interval=30)
-        self.initialize()
-        LoopRunTask.register(self._reset_ping_message, 10)
+        self._ws = Websocket(url, connected_callback=self.connected_callback, process_callback=self.process)
+        self._ws.initialize()
+        LoopRunTask.register(self.send_heartbeat_msg, 10)
 
     async def connected_callback(self):
-        """ After create Websocket connection successfully, we will subscribing orderbook/trade/kline events.
-        """
+        """After create Websocket connection successfully, we will subscribing orderbook/trade/kline events."""
         if not self._symbols:
             logger.warn("symbols not found in config file.", caller=self)
             return
@@ -65,7 +64,7 @@ class GateMarket(Websocket):
                     params.append(s.replace("/", "_"))
                 request_id = await self._generate_request_id()
                 d = {"id": request_id, "method": "trades.subscribe", "params": params}
-                await self.ws.send_json(d)
+                await self._ws.send(d)
                 logger.info("subscribe trade success.", caller=self)
             elif ch == "orderbook":
                 await self.subscribe_orderbook()
@@ -74,7 +73,7 @@ class GateMarket(Websocket):
                     params = [s.replace("/", "_"), 60]
                     request_id = await self._generate_request_id()
                     d = {"id": request_id, "method": "kline.subscribe", "params": params}
-                    await self.ws.send_json(d)
+                    await self._ws.send(d)
                     logger.info("subscribe kline success.", caller=self)
             else:
                 logger.error("channel error:", ch, caller=self)
@@ -87,14 +86,26 @@ class GateMarket(Websocket):
             params.append([s.replace("/", "_"), int(self._orderbook_length), str(self._orderbook_price_precious)])
         request_id = await self._generate_request_id()
         d = {"id": request_id, "method": "depth.subscribe", "params": params}
-        await self.ws.send_json(d)
+        await self._ws.send(d)
         logger.info("subscribe orderbook success.", caller=self)
 
     async def unsubscribe_orderbook(self):
         request_id = await self._generate_request_id()
         d = {"id": request_id, "method": "depth.unsubscribe", "params": []}
-        await self.ws.send_json(d)
+        await self._ws.send(d)
         logger.info("unsubscribe orderbook success.", caller=self)
+
+    async def send_heartbeat_msg(self, *args, **kwargs):
+        request_id = await self._generate_request_id()
+        data = {
+            "id": request_id,
+            "method": "server.ping",
+            "params": []
+        }
+        if not self._ws:
+            logger.error("Websocket connection not yeah!", caller=self)
+            return
+        await self._ws.send(data)
 
     async def process(self, msg):
         """ Process message that received from Websocket connection.
@@ -248,12 +259,3 @@ class GateMarket(Websocket):
     async def _generate_request_id(self):
         self._request_id += 1
         return self._request_id
-
-    async def _reset_ping_message(self, *args, **kwargs):
-        """Reset ping message."""
-        request_id = await self._generate_request_id()
-        self.heartbeat_msg = {
-            "id": request_id,
-            "method": "server.ping",
-            "params": []
-        }

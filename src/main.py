@@ -21,7 +21,7 @@ from quant.config import config
 def initialize():
     """Initialize Server."""
 
-    for platform in config.platforms:
+    for platform in config.markets:
         if platform == const.OKEX or platform == const.OKEX_MARGIN:
             from markets.okex import OKEx as Market
         elif platform == const.OKEX_FUTURE:
@@ -54,7 +54,7 @@ def initialize():
             from quant.utils import logger
             logger.error("platform error! platform:", platform)
             continue
-        cc = config.platforms[platform]
+        cc = config.markets[platform]
         cc["platform"] = platform
         Market(**cc)
 

@@ -28,7 +28,7 @@ Gemini 的行情数据根据 [Gemini](https://docs.gemini.com/websocket-api/) �
     },
     "PROXY": "http://127.0.0.1:1087",
 
-    "PLATFORMS": {
+    "MARKETS": {
         "gemini": {
             "symbols": [
                 "BTC/USD",
@@ -45,8 +45,8 @@ Gemini 的行情数据根据 [Gemini](https://docs.gemini.com/websocket-api/) �
 以上配置表示：订阅 `gemini` 交易所里，交易对 `BTC/USD` 和 `ETH/USD` 的 `orderbook 订单薄` 行情数据。
 
 > 配置文件可以参考 [配置文件说明](https://github.com/TheNextQuant/thenextquant/blob/master/docs/configure/README.md)。
-> 此处对 `PLATFORMS` 下的关键配置做一下说明:
-- PLATFORMS `dict` 需要配置的交易平台，key为交易平台名称，value为对应的行情配置
+> 此处对 `MARKETS` 下的关键配置做一下说明:
+- MARKETS `dict` 需要配置的交易平台，key为交易平台名称，value为对应的行情配置
 - gemini `dict` 交易平台名称
 - symbols `list` 需要订阅行情数据的交易对，可以是一个或多个，注意此处配置的交易对都需要大写字母，交易对之间包含斜杠
 - channels `list` 需要订阅的行情类型 `orderbook 订单薄`

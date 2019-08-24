@@ -13,12 +13,12 @@ import copy
 
 from quant.utils import tools
 from quant.utils import logger
-from quant.utils.websocket import Websocket
+from quant.utils.web import Websocket
 from quant.event import EventOrderbook
 from quant.utils.decorator import async_method_locker
 
 
-class GeminiMarket(Websocket):
+class GeminiMarket:
     """ Gemini Market Server.
 
     Attributes:
@@ -26,7 +26,7 @@ class GeminiMarket(Websocket):
             platform: Exchange platform name, must be `gemini`.
             wss: Exchange Websocket host address, default is "wss://api.gemini.com".
             symbols: Trade pair list, e.g. ["ETH/BTC"].
-            channels: channel list, only `orderbook` , `kline` and `trade` to be enabled.
+            channels: channel list, only `orderbook` to be enabled.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """
 
@@ -41,12 +41,11 @@ class GeminiMarket(Websocket):
         self._symbols_map = {}  # config symbol name to raw symbol name, e.g. {"BTCUSD": "BTC/USD"}
 
         url = self._wss + "/v2/marketdata"
-        super(GeminiMarket, self).__init__(url)
-        self.initialize()
+        self._ws = Websocket(url, connected_callback=self.connected_callback, process_callback=self.process)
+        self._ws.initialize()
 
     async def connected_callback(self):
-        """ After create Websocket connection successfully, we will subscribing orderbook/trade/kline events.
-        """
+        """After create Websocket connection successfully, we will subscribing orderbook events."""
         symbols = []
         for s in self._symbols:
             t = s.replace("/", "")
@@ -72,7 +71,7 @@ class GeminiMarket(Websocket):
                 "type": "subscribe",
                 "subscriptions": subscriptions
             }
-            await self.ws.send_json(msg)
+            await self._ws.send(msg)
             logger.info("subscribe orderbook success.", caller=self)
 
     async def process(self, msg):
@@ -120,44 +119,42 @@ class GeminiMarket(Websocket):
                 else:
                     self._orderbooks[symbol]["bids"][price] = quantity
 
-        await self.publish_orderbook_event()
+        await self.publish_orderbook_event(symbol)
 
-    async def publish_orderbook_event(self, *args, **kwargs):
-        """ Publish OrderbookEvent.
-        """
-        for symbol, data in self._orderbooks.items():
-            ob = copy.copy(data)
-            if not ob["asks"] or not ob["bids"]:
-                logger.warn("symbol:", symbol, "asks:", ob["asks"], "bids:", ob["bids"], caller=self)
-                continue
+    async def publish_orderbook_event(self, symbol):
+        """Publish OrderbookEvent."""
+        ob = copy.copy(self._orderbooks[symbol])
+        if not ob["asks"] or not ob["bids"]:
+            logger.warn("symbol:", symbol, "asks:", ob["asks"], "bids:", ob["bids"], caller=self)
+            return
 
-            ask_keys = sorted(list(ob["asks"].keys()))
-            bid_keys = sorted(list(ob["bids"].keys()), reverse=True)
-            if ask_keys[0] <= bid_keys[0]:
-                logger.warn("symbol:", symbol, "ask1:", ask_keys[0], "bid1:", bid_keys[0], caller=self)
-                continue
+        ask_keys = sorted(list(ob["asks"].keys()))
+        bid_keys = sorted(list(ob["bids"].keys()), reverse=True)
+        if ask_keys[0] <= bid_keys[0]:
+            logger.warn("symbol:", symbol, "ask1:", ask_keys[0], "bid1:", bid_keys[0], caller=self)
+            return
 
-            # asks
-            asks = []
-            for k in ask_keys[:self._orderbook_length]:
-                price = "%.8f" % k
-                quantity = "%.8f" % ob["asks"].get(k)
-                asks.append([price, quantity])
+        # asks
+        asks = []
+        for k in ask_keys[:self._orderbook_length]:
+            price = "%.8f" % k
+            quantity = "%.8f" % ob["asks"].get(k)
+            asks.append([price, quantity])
 
-            # bids
-            bids = []
-            for k in bid_keys[:self._orderbook_length]:
-                price = "%.8f" % k
-                quantity = "%.8f" % ob["bids"].get(k)
-                bids.append([price, quantity])
+        # bids
+        bids = []
+        for k in bid_keys[:self._orderbook_length]:
+            price = "%.8f" % k
+            quantity = "%.8f" % ob["bids"].get(k)
+            bids.append([price, quantity])
 
-            # Publish OrderbookEvent.
-            orderbook = {
-                "platform": self._platform,
-                "symbol": symbol,
-                "asks": asks,
-                "bids": bids,
-                "timestamp": tools.get_cur_timestamp_ms()
-            }
-            EventOrderbook(**orderbook).publish()
-            logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
+        # Publish OrderbookEvent.
+        orderbook = {
+            "platform": self._platform,
+            "symbol": symbol,
+            "asks": asks,
+            "bids": bids,
+            "timestamp": tools.get_cur_timestamp_ms()
+        }
+        EventOrderbook(**orderbook).publish()
+        logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)

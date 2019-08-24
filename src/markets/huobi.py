@@ -13,13 +13,13 @@ import gzip
 import json
 
 from quant.utils import logger
-from quant.utils.websocket import Websocket
+from quant.utils.web import Websocket
 from quant.const import MARKET_TYPE_KLINE
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 from quant.event import EventTrade, EventKline, EventOrderbook
 
 
-class Huobi(Websocket):
+class Huobi:
     """ Huobi Market Server.
 
     Attributes:
@@ -41,12 +41,12 @@ class Huobi(Websocket):
         self._c_to_s = {}  # {"channel": "symbol"}
 
         url = self._wss + "/ws"
-        super(Huobi, self).__init__(url, send_hb_interval=5)
-        self.initialize()
+        self._ws = Websocket(url, connected_callback=self.connected_callback,
+                             process_binary_callback=self.process_binary)
+        self._ws.initialize()
 
     async def connected_callback(self):
-        """ After create Websocket connection successfully, we will subscribing orderbook/trade events.
-        """
+        """After create Websocket connection successfully, we will subscribing orderbook/trade/kline events."""
         for ch in self._channels:
             if ch == "kline":
                 for symbol in self._symbols:
@@ -56,7 +56,7 @@ class Huobi(Websocket):
                     kline = {
                         "sub": channel
                     }
-                    await self.ws.send_json(kline)
+                    await self._ws.send(kline)
             elif ch == "orderbook":
                 for symbol in self._symbols:
                     channel = self._symbol_to_channel(symbol, "depth")
@@ -65,7 +65,7 @@ class Huobi(Websocket):
                     data = {
                         "sub": channel
                     }
-                    await self.ws.send_json(data)
+                    await self._ws.send(data)
             elif ch == "trade":
                 for symbol in self._symbols:
                     channel = self._symbol_to_channel(symbol, "trade")
@@ -74,19 +74,23 @@ class Huobi(Websocket):
                     data = {
                         "sub": channel
                     }
-                    await self.ws.send_json(data)
+                    await self._ws.send(data)
             else:
                 logger.error("channel error! channel:", ch, caller=self)
 
     async def process_binary(self, msg):
         """ Process binary message that received from Websocket connection.
+
+        Args:
+            msg: Binary message received from Websocket connection.
         """
         data = json.loads(gzip.decompress(msg).decode())
         # logger.debug("data:", json.dumps(data), caller=self)
         channel = data.get("ch")
         if not channel:
             if data.get("ping"):
-                self.heartbeat_msg = data
+                hb_msg = {"pong": data.get("ping")}
+                await self._ws.send(hb_msg)
             return
 
         symbol = self._c_to_s[channel]

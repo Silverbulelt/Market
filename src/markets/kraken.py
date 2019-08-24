@@ -1,7 +1,7 @@
 # -*— coding:utf-8 -*-
 
 """
-Kraken Market Server
+Kraken Market Server.
 https://www.kraken.com/en-us/features/websocket-api
 
 Author: HuangTao
@@ -13,20 +13,21 @@ import copy
 
 from quant.utils import tools
 from quant.utils import logger
+from quant.utils.web import Websocket
 from quant.tasks import LoopRunTask, SingleTask
-from quant.utils.websocket import Websocket
 from quant.utils.decorator import async_method_locker
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 from quant.event import EventTrade, EventOrderbook
 from quant.platform.kraken import KrakenRestAPI
 
 
-class KrakenMarket(Websocket):
+class KrakenMarket:
     """ Kraken Market Server
 
     Attributes:
         kwargs:
             platform: Exchange platform name, must be `kraken`.
+            host: HTTP host, default is `https://api.kraken.com`.
             wss: Wss host, default is `wss://ws.kraken.com`.
             symbols: Symbol name list, e.g. XTB/USD. (Trade pair name list)
             channels: What are channels to be subscribed, only support `orderbook` and `trade`.
@@ -49,15 +50,15 @@ class KrakenMarket(Websocket):
 
         self._rest_api = KrakenRestAPI(self._host, None, None)
 
-        super(KrakenMarket, self).__init__(self._wss)
-        self.initialize()
+        url = self._wss
+        self._ws = Websocket(url, connected_callback=self.connected_callback, process_callback=self.process)
+        self._ws.initialize()
 
         # Register a loop run task to reset heartbeat message request id.
-        LoopRunTask.register(self._update_heartbeat_msg, 5)
+        LoopRunTask.register(self.send_heartbeat_msg, 5)
 
     async def connected_callback(self):
-        """ After create Websocket connection successfully, we will subscribing orderbook/trade/kline.
-        """
+        """After create Websocket connection successfully, we will subscribing orderbook/trade/kline."""
         if not self._symbols:
             logger.warn("symbols not found in config file.", caller=self)
             return
@@ -82,16 +83,18 @@ class KrakenMarket(Websocket):
                 "pair": self._symbols,
                 "subscription": subscription
             }
-            await self.ws.send_json(d)
+            await self._ws.send(d)
             logger.info("subscribe", ch, "success.", caller=self)
 
-    async def _update_heartbeat_msg(self, *args, **kwargs):
-        """ Update heartbeat message to new request id.
-        """
-        self.heartbeat_msg = {
+    async def send_heartbeat_msg(self, *args, **kwargs):
+        data = {
             "event": "ping",
             "reqid": tools.get_cur_timestamp()
         }
+        if not self._ws:
+            logger.error("Websocket connection not yeah!", caller=self)
+            return
+        await self._ws.send(data)
 
     async def process(self, msg):
         """ Process message that received from Websocket connection.
