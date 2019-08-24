@@ -128,7 +128,7 @@ class CoinbaseMarket:
         if symbol not in self._symbols:
             return
 
-        self._orderbooks[symbol]["timestamp"] = tools.utctime_str_to_mts(msg["time"])
+        self._orderbooks[symbol]["timestamp"] = tools.utctime_str_to_mts(msg["time"][:23] + "Z")
         for item in msg["changes"]:
             side = item[0]
             price = float(item[1])
@@ -196,7 +196,7 @@ class CoinbaseMarket:
         action = ORDER_ACTION_BUY if msg.get("side") == "buy" else ORDER_ACTION_SELL
         price = "%.8f" % float(msg["price"])
         quantity = "%.8f" % float(msg["last_size"])
-        timestamp = tools.utctime_str_to_mts(msg["time"])
+        timestamp = tools.utctime_str_to_mts(msg["time"][:23] + "Z")
 
         trade = {
             "platform": self._platform,
