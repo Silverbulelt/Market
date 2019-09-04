@@ -15,11 +15,11 @@
     },
     "PROXY": "http://127.0.0.1:1087",
 
-    "PLATFORMS": {
+    "MARKETS": {
         "binance": {
             "symbols": [
-                "BTC/USD",
-                "LTC/USD"
+                "BTC/USDT",
+                "LTC/USDT"
             ],
             "channels": [
                 "kline", "orderbook", "trade"
