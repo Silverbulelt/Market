@@ -193,7 +193,7 @@ class OKExFuture:
             "timestamp": ob["timestamp"]
         }
         EventOrderbook(**orderbook).publish()
-        logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
+        logger.debug("symbol:", symbol, "orderbook:", orderbook, caller=self)
 
     async def process_trade(self, data):
         """Deal with trade data, and publish trade message to EventCenter via TradeEvent."""
@@ -215,7 +215,7 @@ class OKExFuture:
             "timestamp": timestamp
         }
         EventTrade(**trade).publish()
-        logger.info("symbol:", symbol, "trade:", trade, caller=self)
+        logger.debug("symbol:", symbol, "trade:", trade, caller=self)
 
     async def process_kline(self, data):
         """ Deal with 1min kline data, and publish kline message to EventCenter via KlineEvent.
@@ -246,4 +246,4 @@ class OKExFuture:
             "kline_type": const.MARKET_TYPE_KLINE
         }
         EventKline(**kline).publish()
-        logger.info("symbol:", symbol, "kline:", kline, caller=self)
+        logger.debug("symbol:", symbol, "kline:", kline, caller=self)
