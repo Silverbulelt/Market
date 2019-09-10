@@ -27,7 +27,7 @@ class OKEx:
 
     Attributes:
         kwargs:
-            platform: Exchange platform name, must be `okex`.
+            platform: Exchange platform name, must be `okex` or `okex_margin`.
             host: Exchange Websocket host address, default is `wss://real.okex.com:10442`.
             symbols: symbol list, OKEx Future instrument_id list.
             channels: channel list, only `orderbook` , `kline` and `trade` to be enabled.

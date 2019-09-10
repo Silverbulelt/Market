@@ -18,6 +18,7 @@ from quant.utils import tools
 from quant.utils import logger
 from quant.tasks import LoopRunTask
 from quant.utils.web import Websocket
+from quant.utils.decorator import async_method_locker
 from quant.event import EventOrderbook, EventKline, EventTrade
 from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 
@@ -36,7 +37,7 @@ class OKExFuture:
 
     def __init__(self, **kwargs):
         self._platform = kwargs["platform"]
-        self._wss = kwargs.get("wss", "wss://real.okex.com:10442")
+        self._wss = kwargs.get("wss", "wss://real.okex.com:8443")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
         self._orderbook_length = kwargs.get("orderbook_length", 10)
@@ -55,15 +56,24 @@ class OKExFuture:
         for ch in self._channels:
             if ch == "orderbook":
                 for symbol in self._symbols:
-                    ch = "futures/depth:{s}".format(s=symbol)
+                    if self._platform == const.OKEX_FUTURE:
+                        ch = "futures/depth:{s}".format(s=symbol)
+                    else:
+                        ch = "swap/depth:{s}".format(s=symbol)
                     ches.append(ch)
             elif ch == "trade":
                 for symbol in self._symbols:
-                    ch = "futures/trade:{s}".format(s=symbol.replace("/", '-'))
+                    if self._platform == const.OKEX_FUTURE:
+                        ch = "futures/trade:{s}".format(s=symbol.replace("/", '-'))
+                    else:
+                        ch = "swap/trade:{s}".format(s=symbol.replace("/", '-'))
                     ches.append(ch)
             elif ch == "kline":
                 for symbol in self._symbols:
-                    ch = "futures/candle60s:{s}".format(s=symbol.replace("/", '-'))
+                    if self._platform == const.OKEX_FUTURE:
+                        ch = "futures/candle60s:{s}".format(s=symbol.replace("/", '-'))
+                    else:
+                        ch = "swap/candle60s:{s}".format(s=symbol.replace("/", '-'))
                     ches.append(ch)
             else:
                 logger.error("channel error! channel:", ch, caller=self)
@@ -98,20 +108,21 @@ class OKExFuture:
         # logger.debug("msg:", msg, caller=self)
 
         table = msg.get("table")
-        if table == "futures/depth":
+        if table in ["futures/depth", "swap/depth"]:
             if msg.get("action") == "partial":
                 for d in msg["data"]:
                     await self.process_orderbook_partial(d)
             elif msg.get("action") == "update":
                 for d in msg["data"]:
                     await self.process_orderbook_update(d)
-        elif table == "futures/trade":
+        elif table in ["futures/trade", "swap/trade"]:
             for d in msg["data"]:
                 await self.process_trade(d)
-        elif table == "futures/candle60s":
+        elif table in ["futures/candle60s", "swap/candle60s"]:
             for d in msg["data"]:
                 await self.process_kline(d)
 
+    @async_method_locker("OKExFuture.orderbook_partial")
     async def process_orderbook_partial(self, data):
         """Deal with orderbook partial message."""
         symbol = data.get("instrument_id")
@@ -131,6 +142,7 @@ class OKExFuture:
         timestamp = tools.utctime_str_to_mts(data.get("timestamp"))
         self._orderbooks[symbol]["timestamp"] = timestamp
 
+    @async_method_locker("OKExFuture.orderbook_update")
     async def process_orderbook_update(self, data):
         """Deal with orderbook update message."""
         symbol = data.get("instrument_id")
@@ -202,7 +214,10 @@ class OKExFuture:
             return
         action = ORDER_ACTION_BUY if data["side"] == "buy" else ORDER_ACTION_SELL
         price = "%.8f" % float(data["price"])
-        quantity = "%.8f" % float(data["qty"])
+        if self._platform == const.OKEX_FUTURE:
+            quantity = "%.8f" % float(data["qty"])
+        else:
+            quantity = "%.8f" % float(data["size"])
         timestamp = tools.utctime_str_to_mts(data["timestamp"])
 
         # Publish EventTrade.

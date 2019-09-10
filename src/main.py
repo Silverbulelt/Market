@@ -24,7 +24,7 @@ def initialize():
     for platform in config.markets:
         if platform == const.OKEX or platform == const.OKEX_MARGIN:
             from markets.okex import OKEx as Market
-        elif platform == const.OKEX_FUTURE:
+        elif platform == const.OKEX_FUTURE or platform == const.OKEX_SWAP:
             from markets.okex_ftu import OKExFuture as Market
         elif platform == const.BINANCE:
             from markets.binance import Binance as Market
