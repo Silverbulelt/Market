@@ -65,7 +65,7 @@ class HuobiFutureMarket:
             msg: Binary message.
         """
         data = json.loads(gzip.decompress(msg).decode())
-        logger.debug("data:", json.dumps(data), caller=self)
+        # logger.debug("data:", json.dumps(data), caller=self)
         channel = data.get("ch")
         if not channel:
             if data.get("ping"):
@@ -96,7 +96,7 @@ class HuobiFutureMarket:
             "timestamp": timestamp
         }
         EventOrderbook(**orderbook).publish()
-        logger.info("symbol:", symbol, "orderbook:", orderbook, caller=self)
+        logger.debug("symbol:", symbol, "orderbook:", orderbook, caller=self)
 
     def _symbol_to_channel(self, symbol, channel_type):
         if channel_type == "depth":
