@@ -14,7 +14,9 @@ import json
 
 from quant.utils import logger
 from quant.utils.web import Websocket
-from quant.event import EventOrderbook
+from quant.const import MARKET_TYPE_KLINE
+from quant.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
+from quant.event import EventTrade, EventKline, EventOrderbook
 
 
 class HuobiFutureMarket:
@@ -35,7 +37,6 @@ class HuobiFutureMarket:
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
         self._orderbook_length = kwargs.get("orderbook_length", 10)
-        self._price_precious = kwargs.get("price_precious", 8)
 
         self._c_to_s = {}  # {"channel": "symbol"}
 
@@ -99,11 +100,11 @@ class HuobiFutureMarket:
             kline = {
                 "platform": self._platform,
                 "symbol": symbol,
-                "open": "%.{}f".format(self._price_precious) % d["open"],
-                "high": "%.{}f".format(self._price_precious) % d["high"],
-                "low": "%.{}f".format(self._price_precious) % d["low"],
-                "close": "%.{}f".format(self._price_precious) % d["close"],
-                "volume": "%.{}f".format(self._price_precious) % d["amount"],
+                "open": d["open"],
+                "high": d["high"],
+                "low": d["low"],
+                "close": d["close"],
+                "volume": d["amount"],
                 "timestamp": int(data.get("ts")),
                 "kline_type": MARKET_TYPE_KLINE
             }
@@ -132,8 +133,8 @@ class HuobiFutureMarket:
                 "platform": self._platform,
                 "symbol": symbol,
                 "action": ORDER_ACTION_BUY if direction == "buy" else ORDER_ACTION_SELL,
-                "price": "%.{}f".format(self._price_precious) % price,
-                "quantity": "%.{}f".format(self._price_precious) % quantity,
+                "price": price,
+                "quantity": quantity,
                 "timestamp": tick.get("ts")
             }
             EventTrade(**trade).publish()
