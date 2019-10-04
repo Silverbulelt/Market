@@ -28,10 +28,10 @@ class OKExFuture:
 
     Attributes:
         kwargs:
-            platform: Exchange platform name, must be `okex_future`.
-            wss: Exchange Websocket host address, default is "wss://real.okex.com:10442".
+            platform: Exchange platform name, must be `okex_future` or `okex_swap`.
+            wss: Exchange Websocket host address, default is "wss://real.okex.com:8443".
             symbols: symbol list, OKEx Future instrument_id list.
-            channels: channel list, only `orderbook` , `kline` and `trade` to be enabled.
+            channels: channel list, only `orderbook`, `kline` and `trade` to be enabled.
             orderbook_length: The length of orderbook's data to be published via OrderbookEvent, default is 10.
     """
 
