@@ -187,13 +187,13 @@ class OKExFuture:
 
         asks = []
         for k in ask_keys[:self._orderbook_length]:
-            price = "%.8f" % k
+            price = "%.5f" % k
             quantity = str(ob["asks"].get(k))
             asks.append([price, quantity])
 
         bids = []
         for k in bid_keys[:self._orderbook_length]:
-            price = "%.8f" % k
+            price = "%.5f" % k
             quantity = str(ob["bids"].get(k))
             bids.append([price, quantity])
 
@@ -213,11 +213,11 @@ class OKExFuture:
         if symbol not in self._symbols:
             return
         action = ORDER_ACTION_BUY if data["side"] == "buy" else ORDER_ACTION_SELL
-        price = "%.8f" % float(data["price"])
+        price = "%.5f" % float(data["price"])
         if self._platform == const.OKEX_FUTURE:
-            quantity = "%.8f" % float(data["qty"])
+            quantity = str(data["qty"])
         else:
-            quantity = "%.8f" % float(data["size"])
+            quantity = str(data["size"])
         timestamp = tools.utctime_str_to_mts(data["timestamp"])
 
         # Publish EventTrade.
@@ -242,11 +242,11 @@ class OKExFuture:
         if symbol not in self._symbols:
             return
         timestamp = tools.utctime_str_to_mts(data["candle"][0])
-        _open = "%.8f" % float(data["candle"][1])
-        high = "%.8f" % float(data["candle"][2])
-        low = "%.8f" % float(data["candle"][3])
-        close = "%.8f" % float(data["candle"][4])
-        volume = "%.8f" % float(data["candle"][5])
+        _open = "%.5f" % float(data["candle"][1])
+        high = "%.5f" % float(data["candle"][2])
+        low = "%.5f" % float(data["candle"][3])
+        close = "%.5f" % float(data["candle"][4])
+        volume = str(data["candle"][5])
 
         # Publish EventKline
         kline = {
